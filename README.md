@@ -1,5 +1,7 @@
 # EvTicket
 
+[![CI](https://github.com/elgamalhub/EvTicketApi/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/elgamalhub/EvTicketApi/actions/workflows/ci.yml)
+
 A production-shaped ticketing platform built on **.NET 10** and **Angular 21**. Browse events, pick real seats on a geographic venue map, pay, and walk in with a QR ticket — while organizers and admins get the tools to run the whole show.
 
 The core problem this project solves: **two people must never be able to buy the same seat**. EvTicket locks seats atomically the moment they are selected, holds them for 10 minutes, and streams availability to every open browser with SignalR.
