@@ -1,0 +1,156 @@
+<header class="site-header">
+  <div class="header-inner container">
+    <a class="brand" routerLink="/" (click)="closePanels()" aria-label="EvTicket home">
+      <span class="brand-mark"><app-icon name="ticket" [size]="21" /></span>
+      <span class="brand-word">EvTicket</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a routerLink="/events" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: false }" (click)="closePanels()">Discover</a>
+      @if (auth.isOrganizer()) {
+        <a routerLink="/organizer" routerLinkActive="active" (click)="closePanels()">Organizer</a>
+      }
+      @if (auth.isAdmin()) {
+        <a routerLink="/admin" routerLinkActive="active" (click)="closePanels()">Admin</a>
+      }
+      <a routerLink="/events" [queryParams]="{ sort: 'popular' }" (click)="closePanels()">Trending</a>
+    </nav>
+
+    <div class="header-actions">
+      <a class="icon-btn search-btn" routerLink="/events" aria-label="Search events">
+        <app-icon name="search" [size]="18" />
+      </a>
+
+      @if (auth.isAuthenticated()) {
+        <div class="action-wrap">
+          <button class="icon-btn bell" type="button" (click)="toggleBell()" aria-label="Notifications">
+            <app-icon name="bell" [size]="18" />
+            @if (notifications.unread() > 0) {
+              <span class="badge-count">{{ notifications.unread() > 9 ? '9+' : notifications.unread() }}</span>
+            }
+          </button>
+
+          @if (bellOpen()) {
+            <div class="scrim" (click)="closePanels()"></div>
+            <div class="dropdown notifications-panel" role="dialog" aria-label="Notifications">
+              <div class="dropdown-head">
+                <strong>Notifications</strong>
+                @if (notifications.unread() > 0) {
+                  <button class="link-btn" type="button" (click)="markAllRead()">Mark all read</button>
+                }
+              </div>
+              <div class="notification-list">
+                @for (item of notifications.items(); track item.id) {
+                  <a
+                    class="notification"
+                    [class.unread]="!item.isRead"
+                    [routerLink]="item.link || null"
+                    (click)="openNotification(item.link, item.id)"
+                  >
+                    <span class="notification-icon" [class]="'notification-icon notif-' + item.type">
+                      <app-icon [name]="item.type === 'success' ? 'check-circle' : item.type === 'warning' ? 'alert-triangle' : 'info'" [size]="15" />
+                    </span>
+                    <span class="notification-copy">
+                      <strong>{{ item.title }}</strong>
+                      <span>{{ item.body }}</span>
+                      <em>{{ relative(item.createdAt) }}</em>
+                    </span>
+                  </a>
+                } @empty {
+                  <div class="notification-empty">
+                    <app-icon name="bell" [size]="22" />
+                    <p>No notifications yet.</p>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+
+        <div class="action-wrap">
+          <button class="account-btn" type="button" (click)="toggleUser()" aria-label="Account menu">
+            <span class="avatar">{{ initials(auth.user()?.fullName) }}</span>
+            <span class="account-name">{{ auth.user()?.fullName }}</span>
+            <app-icon name="chevron-down" [size]="14" />
+          </button>
+
+          @if (userOpen()) {
+            <div class="scrim" (click)="closePanels()"></div>
+            <div class="dropdown account-panel" role="menu">
+              <div class="account-head">
+                <span class="avatar avatar-lg">{{ initials(auth.user()?.fullName) }}</span>
+                <div>
+                  <strong>{{ auth.user()?.fullName }}</strong>
+                  <span>{{ auth.user()?.email }}</span>
+                </div>
+              </div>
+              <a routerLink="/account" role="menuitem" (click)="closePanels()">
+                <app-icon name="ticket" [size]="16" /> My tickets
+              </a>
+              <a routerLink="/account" [queryParams]="{ tab: 'profile' }" role="menuitem" (click)="closePanels()">
+                <app-icon name="user" [size]="16" /> Profile settings
+              </a>
+              @if (auth.isOrganizer()) {
+                <a routerLink="/organizer" role="menuitem" (click)="closePanels()">
+                  <app-icon name="dashboard" [size]="16" /> Organizer studio
+                </a>
+              }
+              @if (auth.isAdmin()) {
+                <a routerLink="/admin" role="menuitem" (click)="closePanels()">
+                  <app-icon name="shield" [size]="16" /> Admin console
+                </a>
+              }
+              <hr />
+              <button type="button" role="menuitem" (click)="signOut()">
+                <app-icon name="log-out" [size]="16" /> Sign out
+              </button>
+            </div>
+          }
+        </div>
+      } @else {
+        <a class="btn btn-ghost btn-sm login-link" routerLink="/login">Sign in</a>
+        <a class="btn btn-primary btn-sm" routerLink="/register">Get started</a>
+      }
+
+      <button class="icon-btn menu-btn" type="button" (click)="toggleMenu()" [attr.aria-expanded]="menuOpen()" aria-label="Menu">
+        <app-icon [name]="menuOpen() ? 'x' : 'menu'" [size]="20" />
+      </button>
+    </div>
+  </div>
+
+  @if (menuOpen()) {
+    <div class="mobile-nav">
+      <a routerLink="/events" routerLinkActive="active" (click)="closeMenu()">
+        <app-icon name="compass" [size]="18" /> Discover events
+      </a>
+      <a routerLink="/events" [queryParams]="{ sort: 'popular' }" (click)="closeMenu()">
+        <app-icon name="trending-up" [size]="18" /> Trending now
+      </a>
+      @if (auth.isAuthenticated()) {
+        <a routerLink="/account" (click)="closeMenu()">
+          <app-icon name="ticket" [size]="18" /> My tickets
+        </a>
+      }
+      @if (auth.isOrganizer()) {
+        <a routerLink="/organizer" (click)="closeMenu()">
+          <app-icon name="dashboard" [size]="18" /> Organizer studio
+        </a>
+      }
+      @if (auth.isAdmin()) {
+        <a routerLink="/admin" (click)="closeMenu()">
+          <app-icon name="shield" [size]="18" /> Admin console
+        </a>
+      }
+      <div class="mobile-auth">
+        @if (auth.isAuthenticated()) {
+          <button class="btn btn-outline btn-block" type="button" (click)="signOut()">
+            <app-icon name="log-out" [size]="16" /> Sign out
+          </button>
+        } @else {
+          <a class="btn btn-outline btn-block" routerLink="/login" (click)="closeMenu()">Sign in</a>
+          <a class="btn btn-primary btn-block" routerLink="/register" (click)="closeMenu()">Create account</a>
+        }
+      </div>
+    </div>
+  }
+</header>

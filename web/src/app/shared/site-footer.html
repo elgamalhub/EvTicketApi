@@ -1,0 +1,58 @@
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <div class="footer-brand">
+      <a class="brand" routerLink="/">
+        <span class="brand-mark"><app-icon name="ticket" [size]="20" /></span>
+        <span>EvTicket</span>
+      </a>
+      <p>Live events, real seats. A modern ticketing platform with geography-aware venue maps, atomic seat locking and instant QR tickets.</p>
+      <div class="socials">
+        <a href="https://github.com/elgamalhub" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+          <app-icon name="github" [size]="17" />
+        </a>
+        <a href="https://www.linkedin.com" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
+          <app-icon name="linkedin" [size]="17" />
+        </a>
+        <a href="https://x.com" target="_blank" rel="noopener noreferrer" aria-label="X">
+          <app-icon name="twitter" [size]="16" />
+        </a>
+        <a href="https://www.instagram.com" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+          <app-icon name="instagram" [size]="17" />
+        </a>
+      </div>
+    </div>
+
+    <div class="footer-col">
+      <h4>Explore</h4>
+      <a routerLink="/events">All events</a>
+      <a routerLink="/events" [queryParams]="{ category: 'music' }">Music</a>
+      <a routerLink="/events" [queryParams]="{ category: 'theater' }">Theatre</a>
+      <a routerLink="/events" [queryParams]="{ category: 'comedy' }">Comedy</a>
+      <a routerLink="/events" [queryParams]="{ category: 'film' }">Film</a>
+    </div>
+
+    <div class="footer-col">
+      <h4>For organisers</h4>
+      <a routerLink="/organizer">Organizer studio</a>
+      <a routerLink="/organizer/events/new">Publish an event</a>
+      <a routerLink="/organizer/check-in">Check-in desk</a>
+      <a routerLink="/register" [queryParams]="{ role: 'organizer' }">Become an organizer</a>
+    </div>
+
+    <div class="footer-col">
+      <h4>Platform</h4>
+      <a routerLink="/login">Sign in</a>
+      <a routerLink="/register">Create account</a>
+      <a routerLink="/account">My tickets</a>
+      <a href="http://localhost:5080/scalar/v1" target="_blank" rel="noopener noreferrer">API reference</a>
+    </div>
+  </div>
+
+  <div class="footer-bottom container">
+    <span>© {{ year }} EvTicket. Built as a full-stack engineering showcase.</span>
+    <span class="footer-meta">
+      <span class="dot live"></span>
+      .NET 10 · Angular 21 · SignalR
+    </span>
+  </div>
+</footer>

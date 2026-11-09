@@ -1,0 +1,177 @@
+<section class="page">
+  <div class="container">
+    <header class="page-head fade-up">
+      <span class="eyebrow"><app-icon name="compass" [size]="13" /> The full calendar</span>
+      <h1>Find your next night out</h1>
+      <p>Every listing below has a real venue behind it — and a live seat map you can explore before you buy.</p>
+    </header>
+
+    <div class="toolbar panel">
+      <form class="search-box" (submit)="$event.preventDefault(); submitSearch()">
+        <app-icon name="search" [size]="18" />
+        <input
+          type="search"
+          placeholder="Search events, artists, venues…"
+          [value]="searchText()"
+          (input)="searchText.set($any($event.target).value)"
+          aria-label="Search events"
+        />
+        <button class="btn btn-primary btn-sm" type="submit">Search</button>
+      </form>
+
+      <div class="toolbar-row">
+        <div class="select-wrap">
+          <app-icon name="map-pin" [size]="15" />
+          <select
+            [value]="filters().city ?? ''"
+            (change)="apply({ city: $any($event.target).value || undefined })"
+            aria-label="Filter by city"
+          >
+            <option value="">All cities</option>
+            @for (city of cities(); track city) {
+              <option [value]="city">{{ city }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="select-wrap">
+          <app-icon name="filter" [size]="14" />
+          <select
+            [value]="filters().sort ?? 'date'"
+            (change)="apply({ sort: $any($event.target).value })"
+            aria-label="Sort events"
+          >
+            <option value="date">Date</option>
+            <option value="popular">Most popular</option>
+            <option value="price_asc">Price: low to high</option>
+            <option value="price_desc">Price: high to low</option>
+            <option value="newest">Newest</option>
+          </select>
+        </div>
+
+        <button class="chip" type="button" (click)="filtersOpen.set(!filtersOpen())" [class.active]="filtersOpen() || filters().minPrice || filters().includePast">
+          <app-icon name="settings" [size]="14" /> More filters
+          @if (filters().minPrice || filters().maxPrice) {
+            <span class="filter-dot"></span>
+          }
+        </button>
+
+        @if (activeCount() > 0) {
+          <button class="btn btn-ghost btn-sm clear-btn" type="button" (click)="clearAll()">
+            <app-icon name="x" [size]="14" /> Clear
+          </button>
+        }
+
+        <span class="result-count">
+          @if (result(); as res) {
+            {{ res.total }} {{ res.total === 1 ? 'event' : 'events' }}
+          }
+        </span>
+      </div>
+
+      @if (filtersOpen()) {
+        <div class="advanced">
+          <label class="field">
+            <span>Price range</span>
+            <input
+              class="input"
+              placeholder="e.g. 20-80"
+              [value]="priceText()"
+              (input)="priceText.set($any($event.target).value)"
+              (keydown.enter)="applyPrice()"
+            />
+          </label>
+          <label class="check-field">
+            <input type="checkbox" [checked]="filters().includePast" (change)="apply({ includePast: $any($event.target).checked })" />
+            <span>Include past events</span>
+          </label>
+          <button class="btn btn-soft btn-sm" type="button" (click)="applyPrice()">Apply price</button>
+        </div>
+      }
+    </div>
+
+    <div class="category-strip">
+      <button class="chip" type="button" [class.active]="!filters().category" (click)="apply({ category: undefined })">All</button>
+      @for (category of categories(); track category.id) {
+        <button class="chip" type="button" [class.active]="filters().category === category.slug" (click)="toggleCategory(category.slug)">
+          <app-icon [name]="category.icon" [size]="14" /> {{ category.name }}
+        </button>
+      }
+    </div>
+
+    @if (activeCount() > 0) {
+      <div class="active-filters">
+        <span class="muted tiny">Filtering by</span>
+        @if (filters().q) {
+          <button class="filter-pill" type="button" (click)="apply({ q: undefined })">
+            “{{ filters().q }}” <app-icon name="x" [size]="12" />
+          </button>
+        }
+        @if (categoryName()) {
+          <button class="filter-pill" type="button" (click)="apply({ category: undefined })">
+            {{ categoryName() }} <app-icon name="x" [size]="12" />
+          </button>
+        }
+        @if (filters().city) {
+          <button class="filter-pill" type="button" (click)="apply({ city: undefined })">
+            {{ filters().city }} <app-icon name="x" [size]="12" />
+          </button>
+        }
+        @if (filters().minPrice || filters().maxPrice) {
+          <button class="filter-pill" type="button" (click)="priceText.set(''); apply({ minPrice: undefined, maxPrice: undefined })">
+            {{ filters().minPrice ?? 0 }}-{{ filters().maxPrice ?? '∞' }} <app-icon name="x" [size]="12" />
+          </button>
+        }
+        @if (filters().includePast) {
+          <button class="filter-pill" type="button" (click)="apply({ includePast: false })">
+            Past included <app-icon name="x" [size]="12" />
+          </button>
+        }
+        <span class="muted tiny">· sorted by {{ sortLabel() }}</span>
+      </div>
+    }
+
+    @if (error()) {
+      <div class="error-box mt-3">{{ error() }}</div>
+    }
+
+    @if (loading()) {
+      <div class="grid grid-3 mt-3">
+        @for (item of [1, 2, 3, 4, 5, 6]; track item) {
+          <div class="skeleton" style="height: 380px"></div>
+        }
+      </div>
+    } @else if (result()?.items?.length) {
+      <div class="grid grid-3 mt-3">
+        @for (event of result()!.items; track event.id) {
+          <app-event-card [event]="event" />
+        }
+      </div>
+
+      @if ((result()?.totalPages ?? 1) > 1) {
+        <nav class="pagination" aria-label="Pagination">
+          <button class="btn btn-outline btn-sm" type="button" [disabled]="(result()?.page ?? 1) <= 1" (click)="goToPage((result()?.page ?? 1) - 1)">
+            <app-icon name="chevron-left" [size]="15" /> Previous
+          </button>
+          <div class="page-numbers">
+            @for (page of pages(); track page) {
+              <button class="page-number" type="button" [class.active]="page === (result()?.page ?? 1)" (click)="goToPage(page)">{{ page }}</button>
+            }
+          </div>
+          <button class="btn btn-outline btn-sm" type="button" [disabled]="(result()?.page ?? 1) >= (result()?.totalPages ?? 1)" (click)="goToPage((result()?.page ?? 1) + 1)">
+            Next <app-icon name="chevron-right" [size]="15" />
+          </button>
+        </nav>
+      }
+    } @else if (!error()) {
+      <div class="empty mt-3">
+        <app-icon name="search" [size]="32" />
+        <div>
+          <h3>No events match those filters</h3>
+          <p>Try a different city, category or price range.</p>
+        </div>
+        <button class="btn btn-soft btn-sm" type="button" (click)="clearAll()">Reset filters</button>
+      </div>
+    }
+  </div>
+</section>

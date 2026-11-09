@@ -1,0 +1,274 @@
+<section class="page checkout-page">
+  <div class="container">
+    <nav class="crumbs" aria-label="Breadcrumb">
+      <a routerLink="/events">Events</a>
+      <app-icon name="chevron-right" [size]="13" />
+      @if (booking(); as b) {
+        <a [routerLink]="['/events', b.eventSlug]">{{ b.eventTitle }}</a>
+        <app-icon name="chevron-right" [size]="13" />
+      }
+      <span>Checkout</span>
+    </nav>
+
+    @if (loading()) {
+      <div class="checkout-skeleton">
+        <div class="skeleton" style="height: 90px"></div>
+        <div class="skeleton" style="height: 520px"></div>
+      </div>
+    } @else if (error()) {
+      <div class="empty">
+        <app-icon name="alert-circle" [size]="32" />
+        <div>
+          <h3>We couldn't open this checkout</h3>
+          <p>{{ error() }}</p>
+        </div>
+        <a class="btn btn-soft btn-sm" routerLink="/events">Back to events</a>
+      </div>
+    } @else if (booking(); as b) {
+      <header class="checkout-head">
+        <div>
+          <span class="eyebrow"><app-icon name="lock" [size]="12" /> Secure checkout</span>
+          <h1>Complete your order</h1>
+          <p class="muted">{{ b.eventTitle }} · {{ dayAndTime(b.eventStartsAt) }}</p>
+        </div>
+        <ol class="steps-bar" aria-label="Checkout progress">
+          <li class="done"><span><app-icon name="check" [size]="12" /></span> Seats</li>
+          <li class="active"><span>2</span> Payment</li>
+          <li><span>3</span> Tickets</li>
+        </ol>
+      </header>
+
+      @if (!isPending()) {
+        <div class="notice-box">
+          <app-icon name="info" [size]="20" />
+          <div>
+            <strong>This booking is {{ b.status }}</strong>
+            <p>Nothing left to pay here. You can open the booking to see its current state.</p>
+          </div>
+          <a class="btn btn-soft btn-sm" [routerLink]="['/bookings', b.id]">View booking</a>
+        </div>
+      } @else if (expired()) {
+        <div class="expired-box">
+          <app-icon name="clock" [size]="24" />
+          <div>
+            <strong>Your seat hold has expired</strong>
+            <p>Seats are only reserved for 10 minutes. Pick them again to keep your place.</p>
+          </div>
+          <a class="btn btn-primary btn-sm" [routerLink]="['/events', b.eventSlug, 'seats']">
+            <app-icon name="armchair" [size]="14" /> Choose seats again
+          </a>
+        </div>
+      } @else {
+        <div class="hold-timer" [class.urgent]="countdown().total < 120000">
+          <span class="timer-icon"><app-icon name="clock" [size]="18" /></span>
+          <div class="timer-copy">
+            <strong>Seats held for you</strong>
+            <span>Finish payment before the timer runs out or your seats return to the pool.</span>
+          </div>
+          <div class="timer-clock" aria-live="polite">
+            <span>{{ countdown().minutes }}</span><em>:</em><span>{{ countdown().seconds }}</span>
+          </div>
+        </div>
+
+        <div class="checkout-grid">
+          <div class="checkout-main">
+            <section class="card">
+              <div class="section-title">
+                <div>
+                  <span class="eyebrow">Order {{ b.reference }}</span>
+                  <h2>Your tickets</h2>
+                </div>
+                <span class="badge badge-brand">{{ b.itemCount }} {{ b.itemCount === 1 ? 'ticket' : 'tickets' }}</span>
+              </div>
+
+              <div class="ticket-list">
+                @for (ticket of tickets(); track ticket.id) {
+                  <div class="ticket-row">
+                    <span class="ticket-icon"><app-icon [name]="ticket.row ? 'armchair' : 'ticket'" [size]="17" /></span>
+                    <div class="ticket-copy">
+                      <strong>{{ ticket.sectionName || 'General admission' }}</strong>
+                      <span>{{ seatLabel(ticket.sectionName, ticket.row, ticket.seatNumber) }}</span>
+                    </div>
+                    <code class="ticket-code">{{ ticket.code }}</code>
+                    <span class="ticket-price">{{ money(ticket.price, b.currency) }}</span>
+                  </div>
+                }
+              </div>
+
+              <div class="event-strip">
+                <span class="event-date">
+                  <strong>{{ dayMonth(b.eventStartsAt) }}</strong>
+                  <span>{{ timeOfDay(b.eventStartsAt) }}</span>
+                </span>
+                <div>
+                  <strong>{{ b.venueName }}</strong>
+                  <span>{{ b.city }} · doors open earlier for ticket holders</span>
+                </div>
+                <a class="link-arrow" [routerLink]="['/events', b.eventSlug]">Event details <app-icon name="arrow-up-right" [size]="13" /></a>
+              </div>
+            </section>
+
+            <section class="card payment-card">
+              <div class="section-title">
+                <div>
+                  <span class="eyebrow"><app-icon name="shield" [size]="12" /> 256-bit encrypted</span>
+                  <h2>Payment method</h2>
+                </div>
+                <span class="badge badge-muted"><app-icon name="lock" [size]="11" /> Demo mode</span>
+              </div>
+
+              <div class="method-tabs">
+                <button type="button" class="method-tab" [class.active]="method() === 'card'" (click)="setMethod('card')">
+                  <app-icon name="credit-card" [size]="17" />
+                  <div><strong>Card</strong><span>Visa · Mastercard · Amex</span></div>
+                </button>
+                <button type="button" class="method-tab" [class.active]="method() === 'demo'" (click)="setMethod('demo')">
+                  <app-icon name="wallet" [size]="17" />
+                  <div><strong>Demo wallet</strong><span>Instant approval, no card needed</span></div>
+                </button>
+              </div>
+
+              @if (method() === 'card') {
+                <div class="card-form">
+                  <div class="card-preview" [class.amex]="cardBrand() === 'Amex'">
+                    <div class="preview-top">
+                      <span class="chip"></span>
+                      <span class="brand">{{ cardBrand() }}</span>
+                    </div>
+                    <p class="preview-number">{{ cardMask() }}</p>
+                    <div class="preview-bottom">
+                      <div><span>Card holder</span><strong>{{ cardHolder() || 'YOUR NAME' }}</strong></div>
+                      <div><span>Expires</span><strong>{{ expiry() || 'MM/YY' }}</strong></div>
+                    </div>
+                  </div>
+
+                  <div class="form-fields">
+                    <label class="field">
+                      <span>Card number</span>
+                      <div class="input-icon">
+                        <app-icon name="credit-card" [size]="16" />
+                        <input
+                          class="input"
+                          inputmode="numeric"
+                          autocomplete="cc-number"
+                          placeholder="4242 4242 4242 4242"
+                          [value]="cardNumber()"
+                          (input)="onCardInput($any($event.target).value)"
+                        />
+                      </div>
+                    </label>
+                    <label class="field">
+                      <span>Name on card</span>
+                      <input
+                        class="input"
+                        autocomplete="cc-name"
+                        placeholder="Alex Morgan"
+                        [value]="cardHolder()"
+                        (input)="cardHolder.set($any($event.target).value)"
+                      />
+                    </label>
+                    <div class="form-grid tight">
+                      <label class="field">
+                        <span>Expiry</span>
+                        <input
+                          class="input"
+                          inputmode="numeric"
+                          autocomplete="cc-exp"
+                          placeholder="MM/YY"
+                          [value]="expiry()"
+                          (input)="onExpiryInput($any($event.target).value)"
+                        />
+                      </label>
+                      <label class="field">
+                        <span>CVV</span>
+                        <input
+                          class="input"
+                          inputmode="numeric"
+                          autocomplete="cc-csc"
+                          placeholder="123"
+                          [value]="cvv()"
+                          (input)="onCvvInput($any($event.target).value)"
+                        />
+                      </label>
+                    </div>
+
+                    @if (cardError()) {
+                      <p class="field-error">{{ cardError() }}</p>
+                    }
+
+                    <div class="demo-hint">
+                      <app-icon name="sparkles" [size]="14" />
+                      <span>No real payment is taken. Use <button type="button" class="inline-link" (click)="fillDemoCard()">4242 4242 4242 4242</button> or a card ending <code>0002</code> to see a decline.</span>
+                    </div>
+                  </div>
+                </div>
+              } @else {
+                <div class="demo-wallet">
+                  <span class="wallet-mark"><app-icon name="wallet" [size]="30" /></span>
+                  <div>
+                    <strong>EvTicket demo wallet</strong>
+                    <p>This simulates a saved payment method. The order is approved instantly and the full amount is charged to a sandbox account.</p>
+                    <span class="wallet-meta"><app-icon name="check-circle" [size]="13" /> No card details required · instant confirmation</span>
+                  </div>
+                </div>
+              }
+            </section>
+
+            <section class="card card-pad protect">
+              <app-icon name="shield" [size]="20" />
+              <div>
+                <strong>Buyer protection</strong>
+                <p>Your seats are locked the moment you pay. Every ticket is issued directly by the organizer with a unique QR code, and cancellations up to 24 hours before the event are refunded automatically.</p>
+              </div>
+            </section>
+          </div>
+
+          <aside class="order-rail">
+            <div class="card card-pad order-card">
+              <div class="row-between">
+                <h3>Order summary</h3>
+                <span class="badge badge-muted">{{ b.reference }}</span>
+              </div>
+
+              <div class="totals">
+                <div><span>Subtotal</span><strong>{{ money(b.subtotal, b.currency) }}</strong></div>
+                <div><span>Service fee</span><strong>{{ money(b.serviceFee, b.currency) }}</strong></div>
+                <div class="grand"><span>Total due</span><strong>{{ money(b.total, b.currency) }}</strong></div>
+              </div>
+
+              <button class="btn btn-primary btn-lg btn-block" type="button" [disabled]="!canPay() || !readyToPay()" (click)="pay()">
+                @if (paying()) {
+                  <app-icon class="spin" name="loader" [size]="16" /> Processing…
+                } @else {
+                  <app-icon name="lock" [size]="16" /> Pay {{ money(b.total, b.currency) }}
+                }
+              </button>
+
+              <button class="btn btn-ghost btn-sm btn-block" type="button" [disabled]="releasing()" (click)="releaseAndLeave()">
+                @if (releasing()) {
+                  Releasing…
+                } @else {
+                  Release seats and go back
+                }
+              </button>
+
+              <div class="secure-strip">
+                <span><app-icon name="lock" [size]="13" /> Encrypted</span>
+                <span><app-icon name="check-circle" [size]="13" /> Instant tickets</span>
+                <span><app-icon name="refresh" [size]="13" /> Free cancellation</span>
+              </div>
+            </div>
+
+            <div class="card card-pad help-card">
+              <app-icon name="info" [size]="18" />
+              <div>
+                <strong>Need help?</strong>
+                <p>If payment fails, your seats stay held until the timer runs out. You can retry with another method.</p>
+              </div>
+            </div>
+          </aside>
+        </div>
+      }
+    }
+  </div>
+</section>

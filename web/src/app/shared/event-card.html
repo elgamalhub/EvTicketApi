@@ -1,0 +1,55 @@
+<article class="event-card card-hover">
+  <a class="media" [routerLink]="['/events', event().slug]" [attr.aria-label]="event().title">
+    @if (event().bannerUrl) {
+      <img [src]="event().bannerUrl" [alt]="event().title" loading="lazy" />
+    } @else {
+      <div class="media-fallback" [style.background]="'linear-gradient(140deg, rgba(124,108,255,.4), rgba(34,211,238,.18))'">
+        <app-icon [name]="event().isSeated ? 'armchair' : 'ticket'" [size]="42" />
+      </div>
+    }
+    <span class="date-badge">
+      <em>{{ month() }}</em>
+      <strong>{{ day() }}</strong>
+    </span>
+    @if (event().isFeatured) {
+      <span class="featured-chip"><app-icon name="sparkles" [size]="12" /> Featured</span>
+    }
+    @if (soldOut()) {
+      <span class="sold-out">Sold out</span>
+    }
+  </a>
+
+  <div class="body">
+    <div class="meta">
+      <span class="category">{{ event().category }}</span>
+      <span class="sep">·</span>
+      <span>{{ event().city }}</span>
+      <span class="sep">·</span>
+      <span>{{ time() }}</span>
+    </div>
+
+    <a class="title-link" [routerLink]="['/events', event().slug]">
+      <h3>{{ event().title }}</h3>
+    </a>
+
+    <p class="venue">
+      <app-icon name="map-pin" [size]="13" />
+      {{ event().venueName }}
+    </p>
+
+    <div class="foot">
+      <span class="price">from <strong>{{ money(event().minPrice, event().currency) }}</strong></span>
+      <span class="availability" [class.low]="event().availableTickets > 0 && event().availableTickets < 40">
+        @if (soldOut()) {
+          No tickets left
+        } @else {
+          {{ event().availableTickets }} left
+        }
+      </span>
+    </div>
+
+    <div class="progress" aria-hidden="true">
+      <span [style.width.%]="sellThrough()"></span>
+    </div>
+  </div>
+</article>

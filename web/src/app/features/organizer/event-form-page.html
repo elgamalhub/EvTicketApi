@@ -1,0 +1,360 @@
+<section class="page event-form-page">
+  <div class="container">
+    <nav class="crumbs" aria-label="Breadcrumb">
+      <a routerLink="/organizer">Organizer studio</a>
+      <app-icon name="chevron-right" [size]="13" />
+      <span>{{ isEdit() ? 'Edit event' : 'New event' }}</span>
+    </nav>
+
+    <header class="form-head">
+      <div>
+        <span class="eyebrow"><span class="dot live"></span> {{ isEdit() ? 'Editing event' : 'Create event' }}</span>
+        <h1>{{ isEdit() ? 'Update your event' : 'Bring your next event to life' }}</h1>
+        <p class="muted">
+          {{ isEdit()
+            ? 'Changes go live immediately. Pricing is locked once tickets have sold.'
+            : 'Publish to the catalog or save a draft — you can edit everything later.' }}
+        </p>
+      </div>
+      <a class="btn btn-ghost btn-sm" routerLink="/organizer">
+        <app-icon name="arrow-left" [size]="14" /> Back to studio
+      </a>
+    </header>
+
+    @if (loading()) {
+      <div class="form-skeleton">
+        <div class="skeleton" style="height: 78px"></div>
+        <div class="skeleton" style="height: 420px"></div>
+      </div>
+    } @else if (error() && !isEdit()) {
+      <div class="empty">
+        <app-icon name="alert-circle" [size]="30" />
+        <div>
+          <h3>We couldn't open the event editor</h3>
+          <p>{{ error() }}</p>
+        </div>
+        <a class="btn btn-soft btn-sm" routerLink="/organizer">Back to studio</a>
+      </div>
+    } @else {
+      <form class="event-form" (ngSubmit)="onSubmit()" novalidate>
+        <div class="form-main">
+          @if (error()) {
+            <div class="error-box" role="alert">{{ error() }}</div>
+          }
+
+          <section class="card card-pad">
+            <div class="block-head">
+              <span class="block-icon"><app-icon name="edit" [size]="18" /></span>
+              <div>
+                <h2>Event basics</h2>
+                <p class="muted">The headline and story guests see first.</p>
+              </div>
+            </div>
+
+            <div class="fields">
+              <label class="field">
+                <span>Title</span>
+                <input
+                  class="input"
+                  name="title"
+                  maxlength="200"
+                  placeholder="Midnight Symphony: Neon Sessions"
+                  [value]="title()"
+                  (input)="title.set($any($event.target).value)"
+                />
+                @if (title().trim().length > 0 && title().trim().length < 3) {
+                  <span class="field-error">Use at least 3 characters.</span>
+                }
+              </label>
+
+              <label class="field">
+                <span>Short summary</span>
+                <input
+                  class="input"
+                  name="summary"
+                  maxlength="500"
+                  placeholder="One line that makes people want to come"
+                  [value]="summary()"
+                  (input)="summary.set($any($event.target).value)"
+                />
+                <span class="field-hint">{{ summary().length }} / 500 characters</span>
+              </label>
+
+              <label class="field">
+                <span>Description</span>
+                <textarea
+                  class="textarea"
+                  name="description"
+                  maxlength="8000"
+                  rows="7"
+                  placeholder="Tell guests about the lineup, the vibe, the venue, and anything they should bring…"
+                  [value]="description()"
+                  (input)="description.set($any($event.target).value)"
+                ></textarea>
+                <span class="field-hint">{{ description().length }} / 8000 characters · blank lines create paragraphs</span>
+              </label>
+
+              <div class="form-grid">
+                <label class="field">
+                  <span>Category</span>
+                  <select class="select" name="category" [value]="categoryId()" (change)="categoryId.set($any($event.target).value)">
+                    <option value="" disabled>Choose a category</option>
+                    @for (category of categories(); track category.id) {
+                      <option [value]="category.id">{{ category.name }}</option>
+                    }
+                  </select>
+                </label>
+
+                <label class="field">
+                  <span>Age rating</span>
+                  <select class="select" name="ageRating" [value]="ageRating()" (change)="ageRating.set($any($event.target).value)">
+                    @for (rating of ['All ages', '6+', '12+', '16+', '18+']; track rating) {
+                      <option [value]="rating">{{ rating }}</option>
+                    }
+                  </select>
+                </label>
+              </div>
+
+              <label class="field">
+                <span>Tags</span>
+                <input
+                  class="input"
+                  name="tags"
+                  maxlength="300"
+                  placeholder="live music, immersive, date night"
+                  [value]="tags()"
+                  (input)="tags.set($any($event.target).value)"
+                />
+                <span class="field-hint">Comma separated. Tags help people discover your event.</span>
+              </label>
+            </div>
+          </section>
+
+          <section class="card card-pad">
+            <div class="block-head">
+              <span class="block-icon"><app-icon name="calendar" [size]="18" /></span>
+              <div>
+                <h2>When &amp; where</h2>
+                <p class="muted">Times use your local timezone. Doors open before the start.</p>
+              </div>
+            </div>
+
+            <div class="fields">
+              <div class="form-grid">
+                <label class="field">
+                  <span>Starts at</span>
+                  <input
+                    class="input"
+                    type="datetime-local"
+                    name="startsAt"
+                    [value]="startsAt()"
+                    (input)="startsAt.set($any($event.target).value)"
+                  />
+                </label>
+                <label class="field">
+                  <span>Ends at <em class="muted optional">(optional)</em></span>
+                  <input
+                    class="input"
+                    type="datetime-local"
+                    name="endsAt"
+                    [value]="endsAt()"
+                    (input)="endsAt.set($any($event.target).value)"
+                  />
+                </label>
+              </div>
+
+              <div class="form-grid">
+                <label class="field">
+                  <span>Doors open <em class="muted optional">(optional)</em></span>
+                  <input
+                    class="input"
+                    type="datetime-local"
+                    name="doorsOpenAt"
+                    [value]="doorsOpenAt()"
+                    (input)="doorsOpenAt.set($any($event.target).value)"
+                  />
+                </label>
+                <label class="field">
+                  <span>Venue</span>
+                  <select
+                    class="select"
+                    name="venue"
+                    [value]="venueId()"
+                    [disabled]="isEdit()"
+                    (change)="venueId.set($any($event.target).value)"
+                  >
+                    <option value="" disabled>Choose a venue</option>
+                    @for (venue of venues(); track venue.id) {
+                      <option [value]="venue.id">{{ venue.name }} — {{ venue.city }}</option>
+                    }
+                  </select>
+                  @if (isEdit()) {
+                    <span class="field-hint">Venue and seating cannot change after creation.</span>
+                  } @else if (selectedVenue(); as venue) {
+                    <span class="field-hint">{{ venue.address }}, {{ venue.city }} · capacity {{ number(venue.capacity) }}</span>
+                  }
+                </label>
+              </div>
+
+              @if (!timeValid()) {
+                <p class="field-error">Check the order: doors open before the start, and the event ends after it starts.</p>
+              }
+
+              <button
+                class="layout-toggle"
+                type="button"
+                [class.active]="isSeated()"
+                [disabled]="isEdit()"
+                (click)="toggleSeated()"
+              >
+                <span class="toggle-icon"><app-icon [name]="isSeated() ? 'armchair' : 'ticket'" [size]="18" /></span>
+                <span class="toggle-copy">
+                  <strong>{{ isSeated() ? 'Reserved seating map' : 'General admission' }}</strong>
+                  <span>
+                    {{ isSeated()
+                      ? 'Guests pick exact seats on the venue map. Best for theatres and arenas.'
+                      : 'Guests book quantities without a seat number. Best for standing shows.' }}
+                  </span>
+                </span>
+                <span class="switch" [class.on]="isSeated()"><span></span></span>
+              </button>
+            </div>
+          </section>
+
+          <section class="card card-pad">
+            <div class="block-head">
+              <span class="block-icon"><app-icon name="wallet" [size]="18" /></span>
+              <div>
+                <h2>Tickets &amp; media</h2>
+                <p class="muted">A base price scales by section. The service fee is added at checkout.</p>
+              </div>
+            </div>
+
+            <div class="fields">
+              <div class="form-grid">
+                <label class="field">
+                  <span>Base price (USD)</span>
+                  <div class="price-input">
+                    <span>$</span>
+                    <input
+                      class="input"
+                      type="number"
+                      min="0"
+                      step="1"
+                      name="basePrice"
+                      placeholder="45"
+                      [value]="basePrice()"
+                      (input)="basePrice.set($any($event.target).value)"
+                    />
+                  </div>
+                  @if (selectedVenue()) {
+                    <span class="field-hint">
+                      Section range: {{ money(rank().low) }} – {{ money(rank().high) }}
+                    </span>
+                  }
+                </label>
+
+                <label class="field">
+                  <span>Banner image URL <em class="muted optional">(optional)</em></span>
+                  <input
+                    class="input"
+                    type="url"
+                    name="banner"
+                    placeholder="https://images.example.com/banner.jpg"
+                    [value]="bannerUrl()"
+                    (input)="bannerUrl.set($any($event.target).value)"
+                  />
+                  @if (!bannerValid()) {
+                    <span class="field-error">Use a full http(s) image URL.</span>
+                  } @else {
+                    <span class="field-hint">A 16:9 image works best on cards and the event page.</span>
+                  }
+                </label>
+              </div>
+
+              @if (isEdit() && (existing()?.ticketsSold ?? 0) > 0) {
+                <div class="info-box" style="display: flex; gap: 9px; align-items: flex-start">
+                  <app-icon name="lock" [size]="15" />
+                  <span>
+                    {{ number(existing()?.ticketsSold ?? 0) }} tickets have already sold, so pricing is locked.
+                    Contact support for bulk repricing.
+                  </span>
+                </div>
+              }
+
+              <div class="banner-preview">
+                @if (bannerUrl() && bannerValid()) {
+                  <img [src]="bannerUrl()" alt="Event banner preview" />
+                } @else {
+                  <div class="banner-placeholder">
+                    <app-icon name="film" [size]="26" />
+                    <span>Banner preview</span>
+                  </div>
+                }
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <aside class="form-side">
+          <div class="card card-pad publish-card">
+            <h3>{{ isEdit() ? 'Save changes' : 'Publish' }}</h3>
+            <p class="muted">
+              {{ publish()
+                ? 'This event is visible in the public catalog right away.'
+                : 'Drafts stay private to you until you publish.' }}
+            </p>
+
+            <button class="publish-toggle" type="button" [class.on]="publish()" (click)="publish.set(!publish())">
+              <span class="switch" [class.on]="publish()"><span></span></span>
+              <span>{{ publish() ? 'Published' : 'Draft' }}</span>
+            </button>
+
+            <button class="btn btn-primary btn-lg btn-block" type="submit" [disabled]="!canSubmit()">
+              @if (saving()) {
+                <app-icon class="spin" name="loader" [size]="16" /> Saving…
+              } @else {
+                <app-icon name="check" [size]="16" />
+                {{ isEdit() ? 'Save changes' : publish() ? 'Publish event' : 'Save draft' }}
+              }
+            </button>
+
+            <a class="btn btn-ghost btn-sm btn-block" routerLink="/organizer">Cancel</a>
+          </div>
+
+          <div class="card preview-card">
+            <div class="preview-media">
+              @if (bannerUrl() && bannerValid()) {
+                <img [src]="bannerUrl()" alt="" />
+              } @else {
+                <div class="preview-fallback"><app-icon name="ticket" [size]="30" /></div>
+              }
+              <span class="preview-status">{{ publish() ? 'Published' : 'Draft' }}</span>
+            </div>
+            <div class="preview-body">
+              <span class="preview-category">{{ selectedCategory()?.name ?? 'Category' }}</span>
+              <h3>{{ previewTitle() }}</h3>
+              <p class="muted"><app-icon name="calendar" [size]="13" /> {{ previewDate() }}</p>
+              <p class="muted">
+                <app-icon name="map-pin" [size]="13" />
+                {{ selectedVenue()?.name ?? existing()?.venueName ?? 'Venue' }}
+              </p>
+              <div class="preview-foot">
+                <span>from <strong>{{ money(rank().low) }}</strong></span>
+                <span class="badge badge-muted">{{ isSeated() ? 'Reserved seating' : 'General admission' }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card card-pad tips-card">
+            <span class="side-icon"><app-icon name="sparkles" [size]="18" /></span>
+            <div>
+              <strong>Make it stand out</strong>
+              <p>Events with a banner, a sharp summary and clear tags sell up to 3× faster in the catalog.</p>
+            </div>
+          </div>
+        </aside>
+      </form>
+    }
+  </div>
+</section>

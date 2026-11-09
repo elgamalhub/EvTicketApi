@@ -1,0 +1,329 @@
+<section class="page seats-page">
+  <div class="container">
+    <nav class="crumbs" aria-label="Breadcrumb">
+      <a routerLink="/events">Events</a>
+      <app-icon name="chevron-right" [size]="13" />
+      @if (event(); as evt) {
+        <a [routerLink]="['/events', evt.slug]">{{ evt.title }}</a>
+        <app-icon name="chevron-right" [size]="13" />
+      }
+      <span>Choose {{ event()?.isSeated ? 'seats' : 'tickets' }}</span>
+    </nav>
+
+    @if (loading()) {
+      <div class="seat-skeleton">
+        <div class="skeleton" style="height: 74px"></div>
+        <div class="skeleton" style="height: 560px"></div>
+      </div>
+    } @else if (error()) {
+      <div class="empty">
+        <app-icon name="alert-circle" [size]="32" />
+        <div><h3>Could not open this event</h3><p>{{ error() }}</p></div>
+        <a class="btn btn-soft btn-sm" routerLink="/events">Back to events</a>
+      </div>
+    } @else if (event(); as evt) {
+      <header class="seats-head">
+        <div>
+          <span class="eyebrow">{{ evt.category }} · {{ evt.venueName }}, {{ evt.city }}</span>
+          <h1>{{ evt.title }}</h1>
+          <p class="muted">{{ dayAndTime(evt.startsAt) }} · {{ evt.isSeated ? 'reserved seating' : 'general admission' }}</p>
+        </div>
+        <div class="head-actions">
+          @if (evt.isSeated) {
+            <span class="live-state" [class.live]="realtime.status() === 'live'">
+              <span class="dot" [class.live]="realtime.status() === 'live'"></span>
+              {{ realtime.status() === 'live' ? 'Live availability' : realtime.status() === 'connecting' ? 'Connecting…' : 'Offline — refresh to update' }}
+            </span>
+          }
+          <button class="btn btn-outline btn-sm" type="button" (click)="resetView()">
+            <app-icon name="refresh" [size]="14" /> Reset view
+          </button>
+        </div>
+      </header>
+
+      @if (evt.isSeated) {
+        @if (mapLoading() && !map()) {
+          <div class="skeleton" style="height: 560px"></div>
+        } @else if (map(); as m) {
+          <div class="seat-layout">
+            <div class="map-panel card">
+              <div class="map-toolbar">
+                <div class="stat-pills">
+                  @if (stats(); as s) {
+                    <span class="stat-pill"><i class="legend-dot available"></i> {{ number(s.available) }} available</span>
+                    <span class="stat-pill"><i class="legend-dot held"></i> {{ number(s.held) }} on hold</span>
+                    <span class="stat-pill"><i class="legend-dot sold"></i> {{ number(s.sold) }} sold</span>
+                  }
+                </div>
+                <div class="zoom-controls">
+                  <button type="button" class="zoom-btn" (click)="zoom(1)" aria-label="Zoom in"><app-icon name="zoom-in" [size]="16" /></button>
+                  <span class="zoom-label">{{ (scale() * 100).toFixed(0) }}%</span>
+                  <button type="button" class="zoom-btn" (click)="zoom(-1)" aria-label="Zoom out"><app-icon name="zoom-out" [size]="16" /></button>
+                </div>
+              </div>
+
+              <div class="map-stage">
+                <svg
+                  [attr.viewBox]="'0 0 ' + m.mapWidth + ' ' + m.mapHeight"
+                  preserveAspectRatio="xMidYMid meet"
+                  role="img"
+                  [attr.aria-label]="'Interactive seat map for ' + m.title"
+                  [class.panning]="panning()"
+                  (wheel)="onWheel($event)"
+                  (pointerdown)="startPan($event)"
+                  (pointermove)="movePan($event)"
+                  (pointerup)="endPan()"
+                  (pointerleave)="endPan()"
+                >
+                  <defs>
+                    <radialGradient [attr.id]="'stage-glow-' + m.eventId" cx="50%" cy="50%" r="60%">
+                      <stop offset="0%" stop-color="#7c6cff" stop-opacity="0.45" />
+                      <stop offset="100%" stop-color="#7c6cff" stop-opacity="0" />
+                    </radialGradient>
+                    <filter [attr.id]="'seat-glow-' + m.eventId" x="-50%" y="-50%" width="200%" height="200%">
+                      <feDropShadow dx="0" dy="0" stdDeviation="3" flood-color="#ffffff" flood-opacity="0.85" />
+                    </filter>
+                  </defs>
+
+                  <g [attr.transform]="mapTransform()">
+                    <rect x="0" y="0" [attr.width]="m.mapWidth" [attr.height]="m.mapHeight" rx="18" fill="rgba(5,9,20,.35)" />
+
+                    @for (section of m.sections; track section.id) {
+                      <polygon
+                        class="section-outline"
+                        [attr.points]="sectionPoints(section)"
+                        [attr.fill]="section.color"
+                        [attr.stroke]="section.color"
+                        [attr.opacity]="activeSection() && activeSection() !== section.code ? 0.06 : 0.16"
+                      />
+                    }
+
+                    @if (m.stage) {
+                      <rect
+                        [attr.x]="m.stage.x"
+                        [attr.y]="m.stage.y"
+                        [attr.width]="m.stage.width"
+                        [attr.height]="m.stage.height"
+                        rx="14"
+                        [attr.fill]="'url(#stage-glow-' + m.eventId + ')'"
+                      />
+                      <rect
+                        [attr.x]="m.stage.x"
+                        [attr.y]="m.stage.y"
+                        [attr.width]="m.stage.width"
+                        [attr.height]="m.stage.height"
+                        rx="10"
+                        fill="rgba(255,255,255,.055)"
+                        stroke="rgba(255,255,255,.22)"
+                      />
+                      <text
+                        [attr.x]="m.stage.x + m.stage.width / 2"
+                        [attr.y]="m.stage.y + m.stage.height / 2 + 5"
+                        text-anchor="middle"
+                        fill="#d9d3ff"
+                        font-size="15"
+                        font-weight="700"
+                        letter-spacing="5"
+                      >{{ m.stage.label }}</text>
+                    }
+
+                    @for (seat of m.sections; track seat.id) {
+                      @for (item of seat.seats; track item.id) {
+                        <rect
+                          class="seat"
+                          [class.selected]="isSelected(item)"
+                          [attr.x]="item.x - 4.6"
+                          [attr.y]="item.y - 4.6"
+                          width="9.2"
+                          height="9.2"
+                          rx="2.6"
+                          [attr.transform]="'rotate(' + item.rotation + ' ' + item.x + ' ' + item.y + ')'"
+                          [attr.fill]="seatFill(item)"
+                          [attr.opacity]="isDimmed(item) ? 0.15 : item.status === 'sold' ? 0.55 : 1"
+                          [attr.filter]="isSelected(item) ? 'url(#seat-glow-' + m.eventId + ')' : null"
+                          [attr.tabindex]="item.status === 'available' ? 0 : null"
+                          role="button"
+                          [attr.aria-pressed]="isSelected(item)"
+                          [attr.aria-label]="item.code + ', ' + (isSelected(item) ? 'selected' : item.status) + ', ' + money(item.price, m.currency)"
+                          (click)="pickSeat(item)"
+                          (keydown.enter)="pickSeat(item)"
+                          (keydown.space)="pickSeat(item); $event.preventDefault()"
+                          (mouseenter)="hovered.set(item)"
+                          (mouseleave)="hovered.set(null)"
+                        />
+                      }
+                    }
+                  </g>
+                </svg>
+
+                <div class="map-hint">
+                  <app-icon name="zoom-in" [size]="13" /> Scroll to zoom · drag to pan · tap a seat to select
+                </div>
+              </div>
+
+              <div class="map-footer">
+                <div class="legend">
+                  <span><i class="legend-dot available"></i> Available</span>
+                  <span><i class="legend-dot selected"></i> Selected</span>
+                  <span><i class="legend-dot held"></i> On hold</span>
+                  <span><i class="legend-dot sold"></i> Sold</span>
+                </div>
+                <button class="link-arrow" type="button" (click)="activeSection.set(null)" [style.visibility]="activeSection() ? 'visible' : 'hidden'">
+                  Show all sections
+                </button>
+              </div>
+            </div>
+
+            <aside class="selection-rail">
+              <div class="card card-pad sections-card">
+                <div class="row-between">
+                  <h3>Sections</h3>
+                  <span class="muted tiny">{{ m.sections.length }} areas</span>
+                </div>
+                <div class="section-list">
+                  @for (section of m.sections; track section.id) {
+                    <button
+                      class="section-row"
+                      type="button"
+                      [class.active]="activeSection() === section.code"
+                      (click)="toggleSection(section.code)"
+                    >
+                      <i class="section-dot" [style.background]="section.color"></i>
+                      <span class="section-copy">
+                        <strong>{{ section.name }}</strong>
+                        <span>{{ number(sectionAvailable(section)) }} of {{ number(section.seats.length) }} free</span>
+                      </span>
+                      <span class="section-price">{{ money(section.price, m.currency) }}</span>
+                    </button>
+                  }
+                </div>
+              </div>
+
+              <div class="card card-pad inspector">
+                <div class="row-between">
+                  <h3>Seat inspector</h3>
+                  <span class="badge" [class]="hovered() ? 'badge-brand' : 'badge-muted'">{{ hovered() ? hovered()!.status : 'hover a seat' }}</span>
+                </div>
+                @if (hovered(); as seat) {
+                  <div class="inspector-body">
+                    <div class="seat-preview" [style.background]="seatFill(seat)"></div>
+                    <div>
+                      <strong>{{ seat.code }}</strong>
+                      <span>{{ sectionName(seat.sectionCode) }} · row {{ seat.row }} · seat {{ seat.number }}</span>
+                      <span class="price">{{ money(seat.price, m.currency) }}</span>
+                    </div>
+                  </div>
+                } @else {
+                  <p class="muted tiny">Hover or focus any seat on the map to see its section, row and price before you commit.</p>
+                }
+              </div>
+
+              <div class="card card-pad summary-card">
+                <div class="row-between">
+                  <h3>Your selection</h3>
+                  <span class="badge badge-brand">{{ selectedCount() }}/{{ maxSeats() }}</span>
+                </div>
+
+                @if (selectedSeats().length) {
+                  <div class="selected-list">
+                    @for (seat of selectedSeats(); track seat.id) {
+                      <div class="selected-row">
+                        <span class="seat-chip" [style.background]="sectionColor(seat.sectionCode)">{{ seat.row }}{{ seat.number }}</span>
+                        <div class="selected-copy">
+                          <strong>{{ sectionName(seat.sectionCode) }}</strong>
+                          <span>{{ seat.code }}</span>
+                        </div>
+                        <span class="selected-price">{{ money(seat.price, m.currency) }}</span>
+                        <button class="remove-btn" type="button" (click)="removeSeat(seat)" [attr.aria-label]="'Remove ' + seat.code">
+                          <app-icon name="x" [size]="13" />
+                        </button>
+                      </div>
+                    }
+                  </div>
+                  <button class="link-btn" type="button" (click)="clearSelection()">Clear selection</button>
+                } @else {
+                  <div class="selection-empty">
+                    <app-icon name="armchair" [size]="26" />
+                    <p>Tap seats on the map to build your order. You can pick up to {{ maxSeats() }}.</p>
+                  </div>
+                }
+
+                <hr />
+
+                <div class="totals">
+                  <div><span>Subtotal</span><strong>{{ money(subtotal(), m.currency) }}</strong></div>
+                  <div><span>Service fee (7%)</span><strong>{{ money(serviceFee(), m.currency) }}</strong></div>
+                  <div class="grand"><span>Total</span><strong>{{ money(total(), m.currency) }}</strong></div>
+                </div>
+
+                <button class="btn btn-primary btn-block btn-lg" type="button" [disabled]="!canContinue() || holding()" (click)="continueToCheckout()">
+                  @if (holding()) {
+                    <app-icon class="spin" name="loader" [size]="16" /> Holding seats…
+                  } @else {
+                    <app-icon name="lock" [size]="16" /> Hold seats & continue
+                  }
+                </button>
+                <p class="hold-note"><app-icon name="clock" [size]="12" /> Your seats are held for 10 minutes at checkout.</p>
+
+                @if (occupancy() > 0) {
+                  <div class="occupancy">
+                    <div class="row-between tiny muted"><span>Venue occupancy</span><span>{{ occupancy() | number: '1.0-0' }}%</span></div>
+                    <div class="progress"><span [style.width.%]="occupancy()"></span></div>
+                  </div>
+                }
+              </div>
+            </aside>
+          </div>
+        }
+      } @else {
+        <div class="ga-layout">
+          <div class="card card-pad ga-main">
+            <span class="eyebrow">General admission</span>
+            <h2>Standing / unassigned tickets</h2>
+            <p class="muted">This event does not use reserved seating. Pick how many tickets you need and we'll hold them for you while you check out.</p>
+
+            <div class="ga-facts">
+              <div class="highlight">
+                <span class="highlight-icon"><app-icon name="calendar" [size]="17" /></span>
+                <div><strong>{{ dayAndTime(evt.startsAt) }}</strong><span>{{ evt.venueName }}</span></div>
+              </div>
+              <div class="highlight">
+                <span class="highlight-icon"><app-icon name="users" [size]="17" /></span>
+                <div><strong>{{ number(evt.availableTickets) }} tickets left</strong><span>{{ number(evt.capacity) }} capacity</span></div>
+              </div>
+            </div>
+
+            <div class="quantity-row">
+              <div>
+                <strong>How many tickets?</strong>
+                <p class="muted tiny">Up to 8 per order. All tickets are general admission.</p>
+              </div>
+              <div class="stepper">
+                <button type="button" (click)="quantity.set(quantity() > 1 ? quantity() - 1 : 1)" aria-label="Fewer tickets"><app-icon name="minus" [size]="15" /></button>
+                <span>{{ quantity() }}</span>
+                <button type="button" (click)="quantity.set(quantity() < 8 ? quantity() + 1 : 8)" aria-label="More tickets"><app-icon name="plus" [size]="15" /></button>
+              </div>
+            </div>
+          </div>
+
+          <aside class="card card-pad summary-card ga-summary">
+            <h3>Order summary</h3>
+            <div class="totals">
+              <div><span>{{ quantity() }} × General admission</span><strong>{{ money(gaSubtotal(), evt.currency) }}</strong></div>
+              <div><span>Service fee (7%)</span><strong>{{ money(gaFee(), evt.currency) }}</strong></div>
+              <div class="grand"><span>Total</span><strong>{{ money(gaTotal(), evt.currency) }}</strong></div>
+            </div>
+            <button class="btn btn-primary btn-block btn-lg" type="button" [disabled]="holding() || evt.availableTickets <= 0" (click)="continueToCheckout()">
+              @if (holding()) {
+                <app-icon class="spin" name="loader" [size]="16" /> Holding tickets…
+              } @else {
+                <app-icon name="lock" [size]="16" /> Hold tickets & continue
+              }
+            </button>
+            <p class="hold-note"><app-icon name="clock" [size]="12" /> Held for 10 minutes at checkout.</p>
+          </aside>
+        </div>
+      }
+    }
+  </div>
+</section>

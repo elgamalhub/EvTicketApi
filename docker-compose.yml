@@ -1,0 +1,27 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: evticket:latest
+    ports:
+      - "8080:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      Jwt__Key: ${JWT_KEY:-dev-only-container-key-change-before-public-use-0123456789}
+      ConnectionStrings__Default: Data Source=/data/evticket.db
+      Seed__Enabled: ${SEED_ENABLED:-true}
+      App__PublicUrl: http://localhost:8080
+      Cors__Origins__0: http://localhost:8080
+    volumes:
+      - evticket-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  evticket-data:

@@ -1,0 +1,288 @@
+<section class="hero">
+  <div class="hero-glow" aria-hidden="true"></div>
+  <div class="container hero-grid">
+    <div class="hero-copy fade-up">
+      <span class="eyebrow"><span class="dot live"></span> Live seat maps · real-time availability</span>
+      <h1 class="display">
+        Find your seat.
+        <span class="gradient-text">Feel the night.</span>
+      </h1>
+      <p class="hero-lede">
+        Discover the city's best nights out and pick the exact seat you want on a live venue map.
+        Your seats are locked the moment you choose them — no double bookings, no surprises.
+      </p>
+
+      <form class="hero-search panel" (submit)="$event.preventDefault(); search()">
+        <label class="search-field">
+          <app-icon name="search" [size]="18" />
+          <input
+            type="search"
+            placeholder="Search artists, shows, venues…"
+            [value]="query()"
+            (input)="query.set($any($event.target).value)"
+            aria-label="Search events"
+          />
+        </label>
+        <label class="search-field city-field">
+          <app-icon name="map-pin" [size]="18" />
+          <select [value]="city()" (change)="city.set($any($event.target).value)" aria-label="City">
+            <option value="">Any city</option>
+            <option value="New York">New York</option>
+            <option value="Los Angeles">Los Angeles</option>
+            <option value="Austin">Austin</option>
+            <option value="Seattle">Seattle</option>
+            <option value="Chicago">Chicago</option>
+          </select>
+        </label>
+        <button class="btn btn-primary" type="submit">
+          Find events <app-icon name="arrow-right" [size]="16" />
+        </button>
+      </form>
+
+      <div class="quick-links">
+        <span class="muted tiny">Popular:</span>
+        @for (category of categories().slice(0, 5); track category.id) {
+          <a class="chip" [routerLink]="['/events']" [queryParams]="{ category: category.slug }">
+            <app-icon [name]="category.icon" [size]="14" /> {{ category.name }}
+          </a>
+        }
+      </div>
+    </div>
+
+    <div class="hero-visual fade-up">
+      @if (heroEvent(); as event) {
+        <div class="hero-card card">
+          <a [routerLink]="['/events', event.slug]" class="hero-image">
+            @if (event.bannerUrl) {
+              <img [src]="event.bannerUrl" [alt]="event.title" />
+            }
+            <span class="live-pill"><span class="dot live"></span> {{ seatsLeft(event) }}</span>
+          </a>
+          <div class="hero-card-body">
+            <div class="row-between">
+              <span class="eyebrow">{{ event.category }} · {{ event.city }}</span>
+              <span class="badge badge-brand">{{ event.isSeated ? 'Reserved seating' : 'General admission' }}</span>
+            </div>
+            <h3>{{ event.title }}</h3>
+            <p class="muted tiny">{{ dayAndTime(event.startsAt) }} · {{ event.venueName }}</p>
+
+            <div class="mini-map" aria-hidden="true">
+              <div class="stage-bar">STAGE</div>
+              @for (row of [0, 1, 2, 3, 4]; track row) {
+                <div class="seat-row">
+                  @for (seat of seatsFor(row); track seat) {
+                    <span class="mini-seat" [class.taken]="seat % 7 === 0 || seat % 11 === 0"></span>
+                  }
+                </div>
+              }
+            </div>
+
+            <div class="hero-card-foot">
+              <div>
+                <span class="muted tiny">From</span>
+                <strong class="hero-price">{{ money(event.minPrice, event.currency) }}</strong>
+              </div>
+              <a class="btn btn-primary btn-sm" [routerLink]="['/events', event.slug, 'seats']">
+                <app-icon name="armchair" [size]="15" /> Choose seats
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div class="floating-card floating-live">
+          <span class="float-icon"><app-icon name="activity" [size]="16" /></span>
+          <div>
+            <strong>{{ number(event.availableTickets) }}</strong>
+            <span>seats available now</span>
+          </div>
+        </div>
+
+        <div class="floating-card floating-lock">
+          <span class="float-icon"><app-icon name="lock" [size]="16" /></span>
+          <div>
+            <strong>10:00</strong>
+            <span>seat hold timer</span>
+          </div>
+        </div>
+      } @else if (loading()) {
+        <div class="hero-card card skeleton" style="height: 480px"></div>
+      } @else {
+        <div class="hero-card card card-pad">
+          <h3>Your next night out is loading</h3>
+          <p class="muted">Start the API to see the live demo catalogue.</p>
+          @if (error()) {
+            <div class="error-box mt-2">{{ error() }}</div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+
+  <div class="container stat-strip">
+    <div class="stat">
+      <strong>{{ totalSeats() ? number(totalSeats()) : '4,000' }}+</strong>
+      <span>seats mapped</span>
+    </div>
+    <div class="stat">
+      <strong>{{ venues().length || 5 }}</strong>
+      <span>hand-built venues</span>
+    </div>
+    <div class="stat">
+      <strong>0</strong>
+      <span>double bookings</span>
+    </div>
+    <div class="stat">
+      <strong>&lt;50ms</strong>
+      <span>seat lock latency</span>
+    </div>
+  </div>
+</section>
+
+<section class="section container">
+  <div class="section-head">
+    <div>
+      <span class="eyebrow">Handpicked</span>
+      <h2>Featured this season</h2>
+      <p>Big productions, intimate rooms and everything in between — each with a live, venue-specific seat map.</p>
+    </div>
+    <a class="link-arrow" routerLink="/events">Browse all events <app-icon name="arrow-right" [size]="15" /></a>
+  </div>
+
+  @if (loading()) {
+    <div class="grid grid-3">
+      @for (item of [1, 2, 3]; track item) {
+        <div class="skeleton" style="height: 380px"></div>
+      }
+    </div>
+  } @else if (featured().length) {
+    <div class="grid grid-3">
+      @for (event of featured().slice(0, 6); track event.id) {
+        <app-event-card [event]="event" />
+      }
+    </div>
+  } @else {
+    <div class="empty">
+      <app-icon name="calendar" [size]="30" />
+      <div>
+        <h3>No events yet</h3>
+        <p>Once an organizer publishes an event it will appear here.</p>
+      </div>
+    </div>
+  }
+</section>
+
+<section class="section feature-band">
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <span class="eyebrow">Under the hood</span>
+        <h2>Built like a real ticketing platform</h2>
+        <p>Every part of the purchase flow is engineered for concurrency, clarity and speed.</p>
+      </div>
+    </div>
+
+    <div class="feature-grid">
+      <article class="feature-card panel">
+        <span class="feature-icon"><app-icon name="map" [size]="22" /></span>
+        <h3>Geography-aware seat maps</h3>
+        <p>Each venue has its own floor plan — blocks, arcs, rings and boxes — generated once and stored with the event so every buyer sees the same layout.</p>
+        <span class="feature-tag">SVG · real geometry</span>
+      </article>
+      <article class="feature-card panel">
+        <span class="feature-icon icon-cyan"><app-icon name="lock" [size]="22" /></span>
+        <h3>Atomic seat locking</h3>
+        <p>A single conditional SQL update claims seats. Two buyers tapping the same seat at the same millisecond — only one can win.</p>
+        <span class="feature-tag">ExecuteUpdateAsync</span>
+      </article>
+      <article class="feature-card panel">
+        <span class="feature-icon icon-green"><app-icon name="qr" [size]="22" /></span>
+        <h3>QR tickets & check-in</h3>
+        <p>Every ticket gets a unique signed code, rendered as a QR pass. Organizers scan at the door and see live attendance.</p>
+        <span class="feature-tag">Instant delivery</span>
+      </article>
+      <article class="feature-card panel">
+        <span class="feature-icon icon-amber"><app-icon name="activity" [size]="22" /></span>
+        <h3>Live updates via SignalR</h3>
+        <p>Seat status and remaining inventory stream to every open browser. Availability you see is availability that exists.</p>
+        <span class="feature-tag">WebSockets</span>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="section container">
+  <div class="split">
+    <div>
+      <div class="section-head">
+        <div>
+          <span class="eyebrow">The rooms</span>
+          <h2>Venues worth leaving home for</h2>
+          <p>Five distinct layouts, from a restored Broadway theatre to a riverside amphitheatre.</p>
+        </div>
+      </div>
+
+      <div class="venue-list">
+        @for (venue of venues(); track venue.id) {
+          <a class="venue-row panel" [routerLink]="['/events']" [queryParams]="{ city: venue.city }">
+            <span class="venue-mark"><app-icon [name]="venue.layoutKind === 'arena' ? 'trophy' : venue.layoutKind === 'cinema' ? 'film' : 'building'" [size]="20" /></span>
+            <div class="venue-copy">
+              <strong>{{ venue.name }}</strong>
+              <span>{{ venue.address }}, {{ venue.city }}</span>
+            </div>
+            <div class="venue-meta">
+              <span class="badge badge-muted">{{ venue.layoutKind }}</span>
+              <span class="muted tiny">{{ number(venue.capacity) }} capacity</span>
+            </div>
+            <app-icon class="venue-arrow" name="arrow-up-right" [size]="16" />
+          </a>
+        } @empty {
+          <div class="empty">Venues will appear once the API is running.</div>
+        }
+      </div>
+    </div>
+
+    <aside class="how-card panel">
+      <span class="eyebrow">How it works</span>
+      <h3>From discovery to the door in four steps</h3>
+      <ol class="steps">
+        <li>
+          <span class="step-num">01</span>
+          <div><strong>Find something good</strong><p>Filter by category, city, date and price.</p></div>
+        </li>
+        <li>
+          <span class="step-num">02</span>
+          <div><strong>Pick your exact seat</strong><p>Zoom the venue map and select up to eight seats.</p></div>
+        </li>
+        <li>
+          <span class="step-num">03</span>
+          <div><strong>Hold, then pay</strong><p>Seats are yours for ten minutes while you check out.</p></div>
+        </li>
+        <li>
+          <span class="step-num">04</span>
+          <div><strong>Walk in with a QR pass</strong><p>Tickets live in your account and scan at the door.</p></div>
+        </li>
+      </ol>
+      <a class="btn btn-primary btn-block" routerLink="/events">
+        Start exploring <app-icon name="arrow-right" [size]="16" />
+      </a>
+    </aside>
+  </div>
+</section>
+
+<section class="cta-band">
+  <div class="container cta-inner">
+    <div>
+      <span class="eyebrow">For organizers</span>
+      <h2>Run the room like a product team.</h2>
+      <p>Publish events, watch sales land in real time, export attendee lists and check guests in from your phone.</p>
+    </div>
+    <div class="cta-actions">
+      <a class="btn btn-primary btn-lg" routerLink="/organizer">
+        <app-icon name="dashboard" [size]="18" /> Open organizer studio
+      </a>
+      <a class="btn btn-outline btn-lg" routerLink="/register" [queryParams]="{ role: 'organizer' }">
+        Create an organizer account
+      </a>
+    </div>
+  </div>
+</section>

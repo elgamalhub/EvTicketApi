@@ -1,0 +1,11 @@
+.git
+.gitignore
+**/bin
+**/obj
+web/node_modules
+web/dist
+web/.angular
+*.db
+*.db-shm
+*.db-wal
+docs/screenshots

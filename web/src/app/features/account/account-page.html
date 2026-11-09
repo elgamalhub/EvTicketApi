@@ -1,0 +1,376 @@
+<section class="page account-page">
+  <div class="container">
+    @if (user(); as account) {
+      <header class="account-head">
+        <div class="account-identity">
+          <span class="avatar" [style.background-image]="account.avatarUrl ? 'url(' + account.avatarUrl + ')' : null">
+            @if (!account.avatarUrl) {
+              {{ initials(account.fullName) }}
+            }
+          </span>
+          <div class="identity-copy">
+            <span class="eyebrow"><span class="dot live"></span> Signed in</span>
+            <h1>{{ account.fullName }}</h1>
+            <p class="muted">{{ account.email }} · member since {{ memberSince() }}</p>
+            <div class="identity-badges">
+              @for (role of account.roles; track role) {
+                <span class="badge" [class.badge-brand]="role === 'Admin'" [class.badge-cyan]="role === 'Organizer'" [class.badge-muted]="role === 'User'">
+                  {{ role }}
+                </span>
+              }
+            </div>
+          </div>
+        </div>
+
+        <div class="account-actions">
+          @if (isOrganizer()) {
+            <a class="btn btn-soft btn-sm" routerLink="/organizer">
+              <app-icon name="dashboard" [size]="14" /> Organizer studio
+            </a>
+          }
+          @if (isAdmin()) {
+            <a class="btn btn-outline btn-sm" routerLink="/admin">
+              <app-icon name="settings" [size]="14" /> Admin console
+            </a>
+          }
+          <button class="btn btn-ghost btn-sm" type="button" (click)="logout()">
+            <app-icon name="log-out" [size]="14" /> Sign out
+          </button>
+        </div>
+      </header>
+
+      <nav class="account-tabs" aria-label="Account sections">
+        <button type="button" [class.active]="tab() === 'tickets'" (click)="setTab('tickets')">
+          <app-icon name="ticket" [size]="15" /> My tickets
+          @if (upcoming().length > 0) {
+            <span class="tab-count">{{ upcoming().length }}</span>
+          }
+        </button>
+        <button type="button" [class.active]="tab() === 'profile'" (click)="setTab('profile')">
+          <app-icon name="user" [size]="15" /> Profile
+        </button>
+        <button type="button" [class.active]="tab() === 'security'" (click)="setTab('security')">
+          <app-icon name="lock" [size]="15" /> Security
+        </button>
+      </nav>
+
+      @if (tab() === 'tickets') {
+        <div class="tickets-panel">
+          <div class="panel-head">
+            <div>
+              <span class="eyebrow">Your bookings</span>
+              <h2>Upcoming &amp; past events</h2>
+              <p class="muted">QR tickets are issued the moment a booking is confirmed.</p>
+            </div>
+            <a class="btn btn-outline btn-sm" routerLink="/events">
+              <app-icon name="search" [size]="14" /> Find events
+            </a>
+          </div>
+
+          <div class="segmented" role="tablist" aria-label="Booking filter">
+            <button
+              type="button"
+              role="tab"
+              [attr.aria-selected]="ticketFilter() === 'upcoming'"
+              [class.active]="ticketFilter() === 'upcoming'"
+              (click)="ticketFilter.set('upcoming')"
+            >
+              Upcoming <span>{{ upcoming().length }}</span>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              [attr.aria-selected]="ticketFilter() === 'past'"
+              [class.active]="ticketFilter() === 'past'"
+              (click)="ticketFilter.set('past')"
+            >
+              Past &amp; cancelled <span>{{ past().length }}</span>
+            </button>
+          </div>
+
+          @if (loading()) {
+            <div class="booking-list">
+              @for (item of [1, 2, 3]; track item) {
+                <div class="skeleton" style="height: 118px"></div>
+              }
+            </div>
+          } @else if (loadError()) {
+            <div class="empty">
+              <app-icon name="alert-circle" [size]="28" />
+              <div>
+                <h3>We couldn't load your bookings</h3>
+                <p>{{ loadError() }}</p>
+              </div>
+              <button class="btn btn-soft btn-sm" type="button" (click)="loadBookings()">Try again</button>
+            </div>
+          } @else if (visibleBookings().length === 0) {
+            <div class="empty">
+              <app-icon [name]="ticketFilter() === 'upcoming' ? 'ticket' : 'clock'" [size]="30" />
+              <div>
+                <h3>{{ ticketFilter() === 'upcoming' ? 'No upcoming tickets yet' : 'Nothing in your history yet' }}</h3>
+                <p>
+                  {{ ticketFilter() === 'upcoming'
+                    ? 'When you book a show, your seats and QR passes will appear here.'
+                    : 'Past, cancelled and expired bookings are kept here for your records.' }}
+                </p>
+              </div>
+              @if (ticketFilter() === 'upcoming') {
+                <a class="btn btn-primary btn-sm" routerLink="/events">Discover events</a>
+              }
+            </div>
+          } @else {
+            <div class="booking-list">
+              @for (booking of visibleBookings(); track booking.id) {
+                <a class="booking-item card card-hover" [routerLink]="['/bookings', booking.id]">
+                  <div class="booking-thumb">
+                    @if (booking.bannerUrl) {
+                      <img [src]="booking.bannerUrl" [alt]="booking.eventTitle" loading="lazy" />
+                    } @else {
+                      <span class="thumb-fallback"><app-icon name="ticket" [size]="26" /></span>
+                    }
+                  </div>
+
+                  <div class="booking-copy">
+                    <div class="booking-title-row">
+                      <h3>{{ booking.eventTitle }}</h3>
+                      <span
+                        class="badge"
+                        [class.badge-success]="booking.status === 'confirmed'"
+                        [class.badge-warning]="booking.status === 'pending'"
+                        [class.badge-danger]="booking.status === 'cancelled' || booking.status === 'expired'"
+                      >
+                        {{ statusLabel(booking.status) }}
+                      </span>
+                    </div>
+                    <p class="booking-meta">
+                      <span><app-icon name="calendar" [size]="13" /> {{ dayAndTime(booking.eventStartsAt) }}</span>
+                      <span><app-icon name="map-pin" [size]="13" /> {{ booking.venueName }}</span>
+                    </p>
+                    <div class="booking-foot">
+                      <code>{{ booking.reference }}</code>
+                      <span>{{ booking.itemCount }} {{ booking.itemCount === 1 ? 'ticket' : 'tickets' }}</span>
+                      <strong>{{ money(booking.total, booking.currency) }}</strong>
+                    </div>
+                  </div>
+
+                  <span class="booking-go"><app-icon name="arrow-right" [size]="16" /></span>
+                </a>
+              }
+            </div>
+          }
+        </div>
+      }
+
+      @if (tab() === 'profile') {
+        <div class="account-grid">
+          <section class="card card-pad">
+            <div class="panel-head compact">
+              <div>
+                <span class="eyebrow">Personal details</span>
+                <h2>Your profile</h2>
+                <p class="muted">This is what organizers see on your tickets and check-in list.</p>
+              </div>
+            </div>
+
+            <div class="profile-preview">
+              <span class="avatar large" [style.background-image]="avatarUrl() ? 'url(' + avatarUrl() + ')' : null">
+                @if (!avatarUrl()) {
+                  {{ initials(fullName()) }}
+                }
+              </span>
+              <div>
+                <strong>{{ fullName() || 'Your name' }}</strong>
+                <span class="muted">{{ account.email }}</span>
+              </div>
+            </div>
+
+            <form class="auth-form" (ngSubmit)="saveProfile()" novalidate>
+              <label class="field">
+                <span>Full name</span>
+                <input
+                  class="input"
+                  name="fullName"
+                  autocomplete="name"
+                  placeholder="Alex Morgan"
+                  [value]="fullName()"
+                  (input)="fullName.set($any($event.target).value)"
+                />
+              </label>
+
+              <div class="form-grid">
+                <label class="field">
+                  <span>Email</span>
+                  <input class="input" [value]="account.email" disabled />
+                  <span class="field-hint">Email changes require support verification.</span>
+                </label>
+                <label class="field">
+                  <span>Phone number</span>
+                  <input
+                    class="input"
+                    name="phone"
+                    autocomplete="tel"
+                    placeholder="+1 555 010 2030"
+                    [value]="phone()"
+                    (input)="phone.set($any($event.target).value)"
+                  />
+                </label>
+              </div>
+
+              <label class="field">
+                <span>Avatar URL <em class="muted" style="font-style: normal; font-weight: 400">(optional)</em></span>
+                <input
+                  class="input"
+                  name="avatar"
+                  type="url"
+                  placeholder="https://example.com/avatar.jpg"
+                  [value]="avatarUrl()"
+                  (input)="avatarUrl.set($any($event.target).value)"
+                />
+                <span class="field-hint">Paste a direct image link. Leave blank to use your initials.</span>
+              </label>
+
+              <button class="btn btn-primary" type="submit" [disabled]="!profileValid() || savingProfile()">
+                @if (savingProfile()) {
+                  <app-icon class="spin" name="loader" [size]="15" /> Saving…
+                } @else {
+                  <app-icon name="check" [size]="15" /> Save changes
+                }
+              </button>
+            </form>
+          </section>
+
+          <aside class="account-side">
+            <div class="card card-pad">
+              <h3>Account overview</h3>
+              <dl class="summary-list">
+                <div><dt>Member since</dt><dd>{{ memberSince() }}</dd></div>
+                <div><dt>Roles</dt><dd>{{ account.roles.join(', ') }}</dd></div>
+                <div><dt>Upcoming events</dt><dd>{{ upcoming().length }}</dd></div>
+                <div><dt>Total bookings</dt><dd>{{ bookings().length }}</dd></div>
+              </dl>
+            </div>
+
+            @if (isOrganizer()) {
+              <div class="card card-pad side-panel">
+                <span class="side-icon"><app-icon name="dashboard" [size]="20" /></span>
+                <div>
+                  <strong>Organizer tools</strong>
+                  <p>Publish events, watch live seat sales and run the check-in desk.</p>
+                  <a class="link-arrow" routerLink="/organizer">Open studio <app-icon name="arrow-right" [size]="13" /></a>
+                </div>
+              </div>
+            }
+
+            <div class="card card-pad side-panel">
+              <span class="side-icon"><app-icon name="shield" [size]="20" /></span>
+              <div>
+                <strong>Your data</strong>
+                <p>Bookings and ticket codes are tied to this account. Sign out on shared devices when you're done.</p>
+              </div>
+            </div>
+          </aside>
+        </div>
+      }
+
+      @if (tab() === 'security') {
+        <div class="account-grid">
+          <section class="card card-pad">
+            <div class="panel-head compact">
+              <div>
+                <span class="eyebrow">Password &amp; sessions</span>
+                <h2>Security</h2>
+                <p class="muted">Use a long, unique password. Changing it does not sign out other devices.</p>
+              </div>
+            </div>
+
+            <form class="auth-form" (ngSubmit)="savePassword()" novalidate>
+              <label class="field">
+                <span>Current password</span>
+                <div class="input-wrap">
+                  <app-icon name="lock" [size]="16" />
+                  <input
+                    class="input has-action"
+                    [type]="showPassword() ? 'text' : 'password'"
+                    name="currentPassword"
+                    autocomplete="current-password"
+                    placeholder="Your current password"
+                    [value]="currentPassword()"
+                    (input)="currentPassword.set($any($event.target).value)"
+                  />
+                  <button
+                    class="input-action"
+                    type="button"
+                    [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
+                    (click)="showPassword.set(!showPassword())"
+                  >
+                    <app-icon [name]="showPassword() ? 'eye-off' : 'eye'" [size]="16" />
+                  </button>
+                </div>
+              </label>
+
+              <div class="form-grid">
+                <label class="field">
+                  <span>New password</span>
+                  <input
+                    class="input"
+                    [type]="showPassword() ? 'text' : 'password'"
+                    name="newPassword"
+                    autocomplete="new-password"
+                    placeholder="At least 8 characters"
+                    [value]="newPassword()"
+                    (input)="newPassword.set($any($event.target).value)"
+                  />
+                </label>
+                <label class="field">
+                  <span>Confirm new password</span>
+                  <input
+                    class="input"
+                    [type]="showPassword() ? 'text' : 'password'"
+                    name="confirmPassword"
+                    autocomplete="new-password"
+                    placeholder="Repeat it"
+                    [value]="confirmPassword()"
+                    (input)="confirmPassword.set($any($event.target).value)"
+                  />
+                </label>
+              </div>
+
+              @if (confirmPassword().length > 0 && newPassword() !== confirmPassword()) {
+                <p class="field-error">Passwords do not match yet.</p>
+              }
+
+              <button class="btn btn-primary" type="submit" [disabled]="!passwordValid() || savingPassword()">
+                @if (savingPassword()) {
+                  <app-icon class="spin" name="loader" [size]="15" /> Updating…
+                } @else {
+                  <app-icon name="shield" [size]="15" /> Update password
+                }
+              </button>
+            </form>
+          </section>
+
+          <aside class="account-side">
+            <div class="card card-pad danger-panel">
+              <span class="side-icon danger"><app-icon name="log-out" [size]="20" /></span>
+              <div>
+                <strong>Sign out</strong>
+                <p>End this session on this device. Your refresh token is revoked immediately.</p>
+                <button class="btn btn-danger btn-sm" type="button" (click)="logout()">
+                  <app-icon name="log-out" [size]="14" /> Sign out now
+                </button>
+              </div>
+            </div>
+
+            <div class="card card-pad side-panel">
+              <span class="side-icon"><app-icon name="info" [size]="20" /></span>
+              <div>
+                <strong>Forgot your password?</strong>
+                <p>Sign out and use the reset link on the sign-in page. Reset tokens expire after 30 minutes.</p>
+              </div>
+            </div>
+          </aside>
+        </div>
+      }
+    }
+  </div>
+</section>

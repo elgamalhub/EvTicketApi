@@ -1,0 +1,246 @@
+<section class="page booking-page">
+  <div class="container">
+    <nav class="crumbs" aria-label="Breadcrumb">
+      <a routerLink="/account">My tickets</a>
+      <app-icon name="chevron-right" [size]="13" />
+      <span>{{ booking()?.reference ?? 'Booking' }}</span>
+    </nav>
+
+    @if (loading()) {
+      <div class="booking-skeleton">
+        <div class="skeleton" style="height: 130px"></div>
+        <div class="skeleton" style="height: 440px"></div>
+      </div>
+    } @else if (error()) {
+      <div class="empty">
+        <app-icon name="alert-circle" [size]="32" />
+        <div>
+          <h3>We couldn't load this booking</h3>
+          <p>{{ error() }}</p>
+        </div>
+        <a class="btn btn-soft btn-sm" routerLink="/account">Back to my tickets</a>
+      </div>
+    } @else if (booking(); as b) {
+      @if (isConfirmed()) {
+        <div class="status-banner success no-print">
+          <span class="banner-icon"><app-icon name="check-circle" [size]="26" /></span>
+          <div>
+            <h1>You're going to {{ b.eventTitle }}</h1>
+            <p>Payment approved · booking {{ b.reference }} · {{ b.itemCount }} {{ b.itemCount === 1 ? 'ticket' : 'tickets' }} in your account.</p>
+          </div>
+          <div class="banner-actions">
+            <button class="btn btn-outline btn-sm" type="button" (click)="addToCalendar()">
+              <app-icon name="calendar" [size]="14" /> Add to calendar
+            </button>
+            <button class="btn btn-soft btn-sm" type="button" (click)="print()">
+              <app-icon name="printer" [size]="14" /> Print tickets
+            </button>
+          </div>
+        </div>
+      } @else if (isPending()) {
+        <div class="status-banner warning no-print">
+          <span class="banner-icon"><app-icon name="clock" [size]="26" /></span>
+          <div>
+            <h1>Your seats are still on hold</h1>
+            <p>Finish payment before the hold expires to lock in booking {{ b.reference }}.</p>
+          </div>
+          <div class="banner-actions">
+            <a class="btn btn-primary btn-sm" [routerLink]="['/checkout', b.id]">
+              <app-icon name="credit-card" [size]="14" /> Complete payment
+            </a>
+          </div>
+        </div>
+      } @else {
+        <div class="status-banner danger no-print">
+          <span class="banner-icon"><app-icon name="alert-circle" [size]="26" /></span>
+          <div>
+            <h1>This booking was {{ b.status }}</h1>
+            <p>{{ b.status === 'cancelled' ? 'The payment was refunded and the seats were released.' : 'The seat hold ran out before payment was completed.' }}</p>
+          </div>
+          <div class="banner-actions">
+            <a class="btn btn-primary btn-sm" [routerLink]="['/events', b.eventSlug, 'seats']">Choose seats again</a>
+          </div>
+        </div>
+      }
+
+      <div class="booking-grid">
+        <div class="tickets-column">
+          <section class="card event-card-block">
+            <div class="event-media">
+              @if (b.venueImageUrl) {
+                <img [src]="b.venueImageUrl" [alt]="b.venueName" />
+              } @else {
+                <div class="media-fallback"><app-icon name="ticket" [size]="40" /></div>
+              }
+              <span class="status-chip" [class]="'status-chip status-' + b.status">{{ statusLabel(b.status) }}</span>
+            </div>
+            <div class="event-copy">
+              <span class="eyebrow">{{ b.city }}</span>
+              <h2>{{ b.eventTitle }}</h2>
+              <div class="event-facts">
+                <span><app-icon name="calendar" [size]="15" /> {{ dateLong(b.eventStartsAt) }} · {{ timeOfDay(b.eventStartsAt) }}</span>
+                <span><app-icon name="map-pin" [size]="15" /> {{ b.venueName }}, {{ b.city }}</span>
+                <span><app-icon name="ticket" [size]="15" /> {{ b.itemCount }} {{ b.itemCount === 1 ? 'ticket' : 'tickets' }}</span>
+              </div>
+              <a class="link-arrow" [routerLink]="['/events', b.eventSlug]">View event page <app-icon name="arrow-up-right" [size]="13" /></a>
+            </div>
+          </section>
+
+          @if (isConfirmed()) {
+            <section class="tickets-block">
+              <div class="section-head">
+                <div>
+                  <span class="eyebrow">Ready to scan</span>
+                  <h2>Your QR tickets</h2>
+                  <p>Each ticket has a unique code. Show it at the door — screenshots work fine.</p>
+                </div>
+                <span class="badge badge-success"><app-icon name="check-circle" [size]="11" /> {{ checkedInCount() }} of {{ b.itemCount }} checked in</span>
+              </div>
+
+              <div class="ticket-grid">
+                @for (ticket of b.tickets; track ticket.id; let i = $index) {
+                  <article class="qr-ticket" [class.checked]="ticket.isCheckedIn">
+                    <div class="ticket-tail">
+                      <span class="ticket-seq">T{{ i + 1 }}</span>
+                      <span class="ticket-status" [class.used]="ticket.isCheckedIn">
+                        {{ ticket.isCheckedIn ? 'Checked in' : 'Valid' }}
+                      </span>
+                    </div>
+
+                    <div class="qr-wrap">
+                      <app-qr-code [value]="ticket.code" [size]="164" />
+                      <span class="scan-hint"><app-icon name="scan" [size]="12" /> Scan at the door</span>
+                    </div>
+
+                    <div class="ticket-body">
+                      <span class="ticket-type">{{ ticket.ticketType }}</span>
+                      <strong class="ticket-seat">{{ seatLabel(ticket.sectionName, ticket.row, ticket.seatNumber) }}</strong>
+                      <span class="ticket-section">{{ ticket.sectionName || 'General admission' }}</span>
+
+                      <button class="ticket-code" type="button" (click)="copy(ticket.code)" [attr.aria-label]="'Copy ticket code ' + ticket.code">
+                        <code>{{ ticket.code }}</code>
+                        <app-icon [name]="copied() === ticket.code ? 'check' : 'copy'" [size]="13" />
+                      </button>
+
+                      @if (ticket.isCheckedIn && ticket.checkedInAt) {
+                        <span class="checked-at"><app-icon name="check" [size]="12" /> Checked in {{ dayAndTime(ticket.checkedInAt) }}</span>
+                      }
+                    </div>
+
+                    <div class="ticket-stub">
+                      <span>{{ money(ticket.price, b.currency) }}</span>
+                      <em>EvTicket</em>
+                    </div>
+                  </article>
+                }
+              </div>
+            </section>
+          } @else {
+            <section class="card card-pad inactive-card">
+              <app-icon name="lock" [size]="22" />
+              <div>
+                <strong>Tickets are issued after payment</strong>
+                <p>This booking is {{ b.status }}. Once payment clears, every ticket gets a signed QR code that can be scanned at the venue.</p>
+              </div>
+            </section>
+          }
+        </div>
+
+        <aside class="booking-side">
+          <div class="card card-pad summary-card">
+            <h3>Booking summary</h3>
+            <dl class="summary-list">
+              <div><dt>Reference</dt><dd><code>{{ b.reference }}</code></dd></div>
+              <div><dt>Status</dt><dd><span class="badge" [class]="'badge-' + (isConfirmed() ? 'success' : isPending() ? 'warning' : 'danger')">{{ statusLabel(b.status) }}</span></dd></div>
+              <div><dt>Payment</dt><dd>{{ statusLabel(b.paymentStatus) }}</dd></div>
+              <div><dt>Booked</dt><dd>{{ dayAndTime(b.createdAt) }}</dd></div>
+              @if (b.confirmedAt) {
+                <div><dt>Confirmed</dt><dd>{{ dayAndTime(b.confirmedAt) }}</dd></div>
+              }
+            </dl>
+
+            <hr />
+
+            <div class="totals">
+              <div><span>Subtotal</span><strong>{{ money(b.subtotal, b.currency) }}</strong></div>
+              <div><span>Service fee</span><strong>{{ money(b.serviceFee, b.currency) }}</strong></div>
+              <div class="grand"><span>Total</span><strong>{{ money(b.total, b.currency) }}</strong></div>
+            </div>
+
+            <div class="side-actions no-print">
+              <button class="btn btn-outline btn-sm btn-block" type="button" (click)="addToCalendar()">
+                <app-icon name="calendar" [size]="14" /> Add to calendar
+              </button>
+              @if (isConfirmed()) {
+                <button class="btn btn-outline btn-sm btn-block" type="button" (click)="print()">
+                  <app-icon name="printer" [size]="14" /> Print / save PDF
+                </button>
+              }
+              @if (b.canCancel) {
+                <button class="btn btn-danger btn-sm btn-block" type="button" (click)="cancelOpen.set(true)">
+                  <app-icon name="x" [size]="14" /> Cancel booking
+                </button>
+              }
+            </div>
+
+            @if (b.canCancel) {
+              <p class="cancel-note">Free cancellation until 24 hours before the event.</p>
+            }
+          </div>
+
+          <div class="card card-pad venue-card">
+            <span class="venue-icon"><app-icon name="map-pin" [size]="19" /></span>
+            <div>
+              <strong>{{ b.venueName }}</strong>
+              <span>{{ b.city }}</span>
+              <span class="muted tiny">Doors open before the start time. Arrive early for a smooth entry.</span>
+            </div>
+          </div>
+
+          <div class="card card-pad support-card">
+            <app-icon name="info" [size]="18" />
+            <div>
+              <strong>Ticket transfer & support</strong>
+              <p>Need to change the name on a ticket or transfer it to a friend? Contact the organizer with your booking reference.</p>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      @if (cancelOpen()) {
+        <div class="dialog-scrim no-print" (click)="cancelOpen.set(false)">
+          <div class="dialog card" role="dialog" aria-modal="true" aria-label="Cancel booking" (click)="$event.stopPropagation()">
+            <div class="dialog-head">
+              <span class="dialog-icon"><app-icon name="alert-triangle" [size]="21" /></span>
+              <div>
+                <h3>Cancel booking {{ b.reference }}?</h3>
+                <p>Your {{ b.itemCount }} {{ b.itemCount === 1 ? 'ticket' : 'tickets' }} will be voided and the seats released. The full amount is refunded to the original payment method.</p>
+              </div>
+            </div>
+
+            <label class="field">
+              <span>Reason (optional)</span>
+              <textarea
+                class="textarea"
+                placeholder="Tell the organizer why you're cancelling…"
+                [value]="reason()"
+                (input)="reason.set($any($event.target).value)"
+              ></textarea>
+            </label>
+
+            <div class="dialog-actions">
+              <button class="btn btn-ghost btn-sm" type="button" (click)="cancelOpen.set(false)">Keep my tickets</button>
+              <button class="btn btn-danger btn-sm" type="button" [disabled]="cancelling()" (click)="cancel()">
+                @if (cancelling()) {
+                  <app-icon class="spin" name="loader" [size]="14" /> Cancelling…
+                } @else {
+                  Cancel and refund
+                }
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+    }
+  </div>
+</section>

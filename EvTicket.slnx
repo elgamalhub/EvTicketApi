@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/api/">
+    <Project Path="api/EvTicket.Api.Tests/EvTicket.Api.Tests.csproj" />
+    <Project Path="api/EvTicket.Api/EvTicket.Api.csproj" />
+  </Folder>
+</Solution>

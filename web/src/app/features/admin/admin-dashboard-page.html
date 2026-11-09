@@ -1,0 +1,512 @@
+<section class="page admin-page">
+  <div class="container">
+    <header class="console-head">
+      <div>
+        <span class="eyebrow"><span class="dot live"></span> Platform console</span>
+        <h1>Admin dashboard</h1>
+        <p class="muted">Revenue, events, people and every booking on EvTicket — all in one place.</p>
+      </div>
+      <div class="head-actions">
+        <a class="btn btn-outline btn-sm" routerLink="/organizer">
+          <app-icon name="dashboard" [size]="14" /> Organizer studio
+        </a>
+        <button class="btn btn-ghost btn-sm" type="button" [disabled]="loading()" (click)="load()">
+          <app-icon name="refresh" [size]="14" [class.spin]="loading()" /> Refresh
+        </button>
+      </div>
+    </header>
+
+    <nav class="console-tabs" aria-label="Admin sections">
+      <button type="button" [class.active]="tab() === 'overview'" (click)="setTab('overview')">
+        <app-icon name="activity" [size]="15" /> Overview
+      </button>
+      <button type="button" [class.active]="tab() === 'users'" (click)="setTab('users')">
+        <app-icon name="users" [size]="15" /> Users
+        @if (data(); as snapshot) {
+          <span class="tab-count">{{ number(snapshot.totalUsers) }}</span>
+        }
+      </button>
+      <button type="button" [class.active]="tab() === 'bookings'" (click)="setTab('bookings')">
+        <app-icon name="ticket" [size]="15" /> Bookings
+        @if (data(); as snapshot) {
+          <span class="tab-count">{{ number(snapshot.totalBookings) }}</span>
+        }
+      </button>
+    </nav>
+
+    @if (tab() === 'overview') {
+      @if (loading()) {
+        <div class="console-skeleton">
+          <div class="kpi-grid">
+            @for (item of [1, 2, 3, 4]; track item) {
+              <div class="skeleton" style="height: 112px"></div>
+            }
+          </div>
+          <div class="skeleton" style="height: 320px"></div>
+          <div class="skeleton" style="height: 300px"></div>
+        </div>
+      } @else if (error()) {
+        <div class="empty">
+          <app-icon name="alert-circle" [size]="30" />
+          <div>
+            <h3>We couldn't load the console</h3>
+            <p>{{ error() }}</p>
+          </div>
+          <button class="btn btn-soft btn-sm" type="button" (click)="load()">Try again</button>
+        </div>
+      } @else if (data(); as stats) {
+        <div class="kpi-grid console-kpis">
+          <article class="kpi">
+            <span class="kpi-label"><app-icon name="users" [size]="14" /> Total users</span>
+            <div class="kpi-value">{{ number(stats.totalUsers) }}</div>
+            <div class="kpi-foot">{{ number(stats.organizers) }} organizers on the platform</div>
+          </article>
+          <article class="kpi">
+            <span class="kpi-label"><app-icon name="calendar" [size]="14" /> Events</span>
+            <div class="kpi-value">{{ number(stats.totalEvents) }}</div>
+            <div class="kpi-foot">{{ number(stats.publishedEvents) }} published · {{ number(stats.totalEvents - stats.publishedEvents) }} drafts</div>
+          </article>
+          <article class="kpi">
+            <span class="kpi-label"><app-icon name="ticket" [size]="14" /> Bookings</span>
+            <div class="kpi-value">{{ number(stats.totalBookings) }}</div>
+            <div class="kpi-foot">Avg order {{ money(stats.averageOrderValue) }}</div>
+          </article>
+          <article class="kpi">
+            <span class="kpi-label"><app-icon name="wallet" [size]="14" /> Gross revenue</span>
+            <div class="kpi-value">{{ money(stats.grossRevenue, 'USD', true) }}</div>
+            <div class="kpi-foot">{{ money(stats.refunded) }} refunded</div>
+          </article>
+        </div>
+
+        <div class="overview-grid">
+          <section class="card chart-card">
+            <div class="chart-head">
+              <div>
+                <span class="eyebrow">Last 14 days</span>
+                <h2>Platform revenue</h2>
+                <p class="muted">Confirmed revenue across every organizer.</p>
+              </div>
+              <span class="badge badge-brand"><app-icon name="activity" [size]="11" /> Live data</span>
+            </div>
+            @if (revenue().length > 0) {
+              <app-area-chart [data]="revenue()" [height]="250" currency="USD" label="Platform revenue by day" />
+            } @else {
+              <div class="empty chart-empty">
+                <app-icon name="bar-chart" [size]="26" />
+                <p>No confirmed revenue in the last two weeks.</p>
+              </div>
+            }
+          </section>
+
+          <section class="card mix-card">
+            <div class="chart-head">
+              <div>
+                <span class="eyebrow">Category mix</span>
+                <h2>Where bookings come from</h2>
+                <p class="muted">Revenue share across event categories.</p>
+              </div>
+            </div>
+
+            @if (categories().length === 0) {
+              <div class="empty chart-empty">
+                <app-icon name="grid" [size]="24" />
+                <p>No category data yet.</p>
+              </div>
+            } @else {
+              <ul class="mix-list">
+                @for (point of categories(); track point.label) {
+                  <li>
+                    <div class="mix-top">
+                      <span class="mix-label">{{ point.label }}</span>
+                      <span class="mix-value">{{ money(point.value, 'USD', true) }}</span>
+                    </div>
+                    <div class="mix-bar">
+                      <span [style.width.%]="maxCategory() ? (point.value / maxCategory()) * 100 : 0"></span>
+                    </div>
+                    <span class="mix-count">{{ number(point.count) }} {{ point.count === 1 ? 'booking' : 'bookings' }}</span>
+                  </li>
+                }
+              </ul>
+            }
+          </section>
+        </div>
+
+        <div class="overview-lower">
+          <section class="card card-pad">
+            <div class="panel-head compact">
+              <div>
+                <span class="eyebrow">Top performers</span>
+                <h2>Best-selling events</h2>
+                <p class="muted">Ranked by gross revenue.</p>
+              </div>
+              <a class="btn btn-ghost btn-sm" routerLink="/events">
+                <app-icon name="compass" [size]="14" /> Catalog
+              </a>
+            </div>
+
+            @if (topEvents().length === 0) {
+              <div class="empty">
+                <app-icon name="calendar" [size]="26" />
+                <p>No events with sales yet.</p>
+              </div>
+            } @else {
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Event</th>
+                      <th>Date</th>
+                      <th>Tickets</th>
+                      <th>Sell-through</th>
+                      <th>Revenue</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (event of topEvents(); track event.id) {
+                      <tr>
+                        <td><strong class="event-name">{{ event.title }}</strong></td>
+                        <td class="nowrap">{{ dayAndTime(event.startsAt) }}</td>
+                        <td class="nowrap">{{ number(event.ticketsSold) }} / {{ number(event.capacity) }}</td>
+                        <td>
+                          <div class="sell-cell">
+                            <span>{{ event.sellThrough }}%</span>
+                            <div class="progress"><span [style.width.%]="event.sellThrough"></span></div>
+                          </div>
+                        </td>
+                        <td class="nowrap"><strong>{{ money(event.revenue) }}</strong></td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          </section>
+
+          <section class="card card-pad">
+            <div class="panel-head compact">
+              <div>
+                <span class="eyebrow">Newest first</span>
+                <h2>Recent signups</h2>
+                <p class="muted">The latest people to join.</p>
+              </div>
+              <button class="btn btn-ghost btn-sm" type="button" (click)="setTab('users')">
+                All users <app-icon name="arrow-right" [size]="13" />
+              </button>
+            </div>
+
+            @if (recentUsers().length === 0) {
+              <div class="empty">
+                <app-icon name="users" [size]="24" />
+                <p>No users yet.</p>
+              </div>
+            } @else {
+              <ul class="recent-people">
+                @for (user of recentUsers(); track user.id) {
+                  <li>
+                    <span class="person-avatar">{{ initials(user.fullName) }}</span>
+                    <div class="person-copy">
+                      <strong>{{ user.fullName }}</strong>
+                      <span>{{ user.email }}</span>
+                    </div>
+                    <div class="person-side">
+                      <span class="badge" [class.badge-cyan]="user.isOrganizer" [class.badge-muted]="!user.isOrganizer">
+                        {{ user.isOrganizer ? 'Organizer' : 'Attendee' }}
+                      </span>
+                      <span class="person-date">{{ dateShort(user.createdAt) }}</span>
+                    </div>
+                  </li>
+                }
+              </ul>
+            }
+          </section>
+        </div>
+      }
+    }
+
+    @if (tab() === 'users') {
+      <section class="card card-pad">
+        <div class="panel-head">
+          <div>
+            <span class="eyebrow">Accounts</span>
+            <h2>Users</h2>
+            <p class="muted">Promote organizers or remove accounts. Deletions cascade to bookings.</p>
+          </div>
+          <div class="panel-tools">
+            <div class="search-wrap">
+              <app-icon name="search" [size]="15" />
+              <input
+                class="input"
+                type="search"
+                placeholder="Search name or email…"
+                aria-label="Search users"
+                [value]="userQuery()"
+                (input)="onUserSearch($any($event.target).value)"
+              />
+              @if (userQuery()) {
+                <button class="clear-search" type="button" aria-label="Clear search" (click)="clearUserSearch()">
+                  <app-icon name="x" [size]="13" />
+                </button>
+              }
+            </div>
+          </div>
+        </div>
+
+        @if (usersLoading()) {
+          <div class="rows-skeleton">
+            @for (item of [1, 2, 3, 4, 5, 6]; track item) {
+              <div class="skeleton" style="height: 52px"></div>
+            }
+          </div>
+        } @else if (usersError()) {
+          <div class="empty">
+            <app-icon name="alert-circle" [size]="28" />
+            <div>
+              <h3>We couldn't load users</h3>
+              <p>{{ usersError() }}</p>
+            </div>
+            <button class="btn btn-soft btn-sm" type="button" (click)="loadUsers(usersPage())">Try again</button>
+          </div>
+        } @else if (users().length === 0) {
+          <div class="empty">
+            <app-icon name="search" [size]="28" />
+            <div>
+              <h3>No users match that search</h3>
+              <p>Try a different name or email address.</p>
+            </div>
+            @if (userQuery()) {
+              <button class="btn btn-soft btn-sm" type="button" (click)="clearUserSearch()">Clear search</button>
+            }
+          </div>
+        } @else {
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>Roles</th>
+                  <th>Bookings</th>
+                  <th>Joined</th>
+                  <th>Organizer</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (user of users(); track user.id) {
+                  <tr>
+                    <td>
+                      <div class="guest-cell">
+                        <span class="person-avatar">{{ initials(user.fullName) }}</span>
+                        <div>
+                          <strong>{{ user.fullName }}</strong>
+                          <span class="muted">{{ user.email }}</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="role-badges">
+                        @for (role of user.roles; track role) {
+                          <span
+                            class="badge"
+                            [class.badge-brand]="role === 'Admin'"
+                            [class.badge-cyan]="role === 'Organizer'"
+                            [class.badge-muted]="role === 'User'"
+                          >
+                            {{ role }}
+                          </span>
+                        }
+                      </div>
+                    </td>
+                    <td class="nowrap">{{ number(user.bookingCount) }}</td>
+                    <td class="nowrap muted">{{ dateShort(user.createdAt) }}</td>
+                    <td>
+                      <button
+                        class="switch"
+                        type="button"
+                        [class.on]="user.isOrganizer"
+                        [disabled]="busyUser() === user.id"
+                        [attr.aria-pressed]="user.isOrganizer"
+                        [attr.aria-label]="(user.isOrganizer ? 'Remove organizer access for ' : 'Grant organizer access to ') + user.fullName"
+                        (click)="toggleOrganizer(user)"
+                      >
+                        <span></span>
+                      </button>
+                    </td>
+                    <td class="actions-cell">
+                      @if (confirmingUser() === user.id) {
+                        <div class="confirm-delete">
+                          <span>Delete?</span>
+                          <button
+                            class="btn btn-danger btn-sm"
+                            type="button"
+                            [disabled]="busyUser() === user.id"
+                            (click)="deleteUser(user)"
+                          >
+                            @if (busyUser() === user.id) {
+                              <app-icon class="spin" name="loader" [size]="12" />
+                            } @else {
+                              Yes
+                            }
+                          </button>
+                          <button class="btn btn-ghost btn-sm" type="button" (click)="cancelDeleteUser()">No</button>
+                        </div>
+                      } @else {
+                        <button class="icon-btn danger" type="button" aria-label="Delete user" (click)="askDeleteUser(user)">
+                          <app-icon name="trash" [size]="15" />
+                        </button>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <div class="pager">
+            <span class="pager-copy">Page {{ usersPage() }} of {{ usersTotalPages() }} · {{ number(usersTotal()) }} users</span>
+            <div class="pager-actions">
+              <button class="btn btn-outline btn-sm" type="button" [disabled]="usersPage() <= 1" (click)="prevUsersPage()">
+                <app-icon name="chevron-left" [size]="14" /> Previous
+              </button>
+              <button class="btn btn-outline btn-sm" type="button" [disabled]="usersPage() >= usersTotalPages()" (click)="nextUsersPage()">
+                Next <app-icon name="chevron-right" [size]="14" />
+              </button>
+            </div>
+          </div>
+        }
+      </section>
+    }
+
+    @if (tab() === 'bookings') {
+      <section class="card card-pad">
+        <div class="panel-head">
+          <div>
+            <span class="eyebrow">All orders</span>
+            <h2>Bookings</h2>
+            <p class="muted">Every order across every organizer, newest first.</p>
+          </div>
+          <div class="panel-tools">
+            <div class="search-wrap">
+              <app-icon name="search" [size]="15" />
+              <input
+                class="input"
+                type="search"
+                placeholder="Search reference, name or event…"
+                aria-label="Search bookings"
+                [value]="bookingQuery()"
+                (input)="onBookingSearch($any($event.target).value)"
+              />
+              @if (bookingQuery()) {
+                <button class="clear-search" type="button" aria-label="Clear search" (click)="clearBookingSearch()">
+                  <app-icon name="x" [size]="13" />
+                </button>
+              }
+            </div>
+            <button class="btn btn-outline btn-sm" type="button" [disabled]="bookingsLoading()" (click)="exportBookings()">
+              <app-icon name="download" [size]="14" /> Export page
+            </button>
+          </div>
+        </div>
+
+        <div class="filter-chips" role="tablist" aria-label="Booking status">
+          @for (status of bookingStatuses; track status) {
+            <button
+              type="button"
+              role="tab"
+              [attr.aria-selected]="bookingStatus() === status"
+              [class.active]="bookingStatus() === status"
+              (click)="setBookingStatus(status)"
+            >
+              {{ statusLabel(status) }}
+            </button>
+          }
+        </div>
+
+        @if (bookingsLoading()) {
+          <div class="rows-skeleton">
+            @for (item of [1, 2, 3, 4, 5, 6]; track item) {
+              <div class="skeleton" style="height: 52px"></div>
+            }
+          </div>
+        } @else if (bookingsError()) {
+          <div class="empty">
+            <app-icon name="alert-circle" [size]="28" />
+            <div>
+              <h3>We couldn't load bookings</h3>
+              <p>{{ bookingsError() }}</p>
+            </div>
+            <button class="btn btn-soft btn-sm" type="button" (click)="loadBookings(bookingsPage())">Try again</button>
+          </div>
+        } @else if (bookings().length === 0) {
+          <div class="empty">
+            <app-icon name="ticket" [size]="26" />
+            <div>
+              <h3>No bookings found</h3>
+              <p>Try another status or a different search.</p>
+            </div>
+          </div>
+        } @else {
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Reference</th>
+                  <th>Customer</th>
+                  <th>Event</th>
+                  <th>Tickets</th>
+                  <th>Total</th>
+                  <th>Status</th>
+                  <th>Created</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (booking of bookings(); track booking.id) {
+                  <tr>
+                    <td><code class="code-chip">{{ booking.reference }}</code></td>
+                    <td>
+                      <div class="guest-cell">
+                        <div>
+                          <strong>{{ booking.customerName }}</strong>
+                          <span class="muted">{{ booking.customerEmail }}</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="event-cell">{{ booking.eventTitle }}</td>
+                    <td class="nowrap">{{ number(booking.itemCount) }}</td>
+                    <td class="nowrap"><strong>{{ money(booking.total) }}</strong></td>
+                    <td>
+                      <div class="status-stack">
+                        <span
+                          class="badge"
+                          [class.badge-success]="booking.status === 'confirmed'"
+                          [class.badge-warning]="booking.status === 'pending'"
+                          [class.badge-danger]="booking.status === 'cancelled' || booking.status === 'expired'"
+                          [class.badge-muted]="booking.status !== 'confirmed' && booking.status !== 'pending' && booking.status !== 'cancelled' && booking.status !== 'expired'"
+                        >
+                          {{ statusLabel(booking.status) }}
+                        </span>
+                        <span class="payment-note">{{ statusLabel(booking.paymentStatus) }}</span>
+                      </div>
+                    </td>
+                    <td class="nowrap muted">{{ dayAndTime(booking.createdAt) }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <div class="pager">
+            <span class="pager-copy">Page {{ bookingsPage() }} of {{ bookingsTotalPages() }} · {{ number(bookingsTotal()) }} bookings</span>
+            <div class="pager-actions">
+              <button class="btn btn-outline btn-sm" type="button" [disabled]="bookingsPage() <= 1" (click)="prevBookingsPage()">
+                <app-icon name="chevron-left" [size]="14" /> Previous
+              </button>
+              <button class="btn btn-outline btn-sm" type="button" [disabled]="bookingsPage() >= bookingsTotalPages()" (click)="nextBookingsPage()">
+                Next <app-icon name="chevron-right" [size]="14" />
+              </button>
+            </div>
+          </div>
+        }
+      </section>
+    }
+  </div>
+</section>

@@ -1,0 +1,52 @@
+<section class="auth-page">
+  <div class="auth-backdrop" aria-hidden="true"></div>
+  <div class="container auth-grid">
+    <aside class="auth-side">
+      <a class="brand" routerLink="/">
+        <span class="brand-mark"><app-icon name="ticket" [size]="21" /></span>
+        <span class="brand-word">EvTicket</span>
+      </a>
+
+      <div class="side-copy">
+        <span class="eyebrow"><span class="dot live"></span> Live events platform</span>
+        <h2>{{ sideTitle() }}</h2>
+        <p>{{ sideLede() }}</p>
+
+        <ul class="side-points">
+          @for (point of points(); track point) {
+            <li><span><app-icon name="check" [size]="12" /></span> {{ point }}</li>
+          }
+        </ul>
+      </div>
+
+      <div class="side-map" aria-hidden="true">
+        <div class="map-stage-label">STAGE</div>
+        @for (row of [0, 1, 2, 3, 4, 5]; track row) {
+          <div class="map-row">
+            @for (seat of seats(row); track seat) {
+              <span class="map-seat" [class.taken]="seat % 9 === 0 || seat % 13 === 0" [class.held]="seat % 11 === 0"></span>
+            }
+          </div>
+        }
+      </div>
+
+      <div class="side-foot">
+        <span class="dot live"></span>
+        <span>4,000+ seats mapped · .NET 10 + Angular 21</span>
+      </div>
+    </aside>
+
+    <main class="auth-card card">
+      <header class="auth-head">
+        <span class="eyebrow">{{ eyebrow() }}</span>
+        <h1>{{ title() }}</h1>
+        @if (subtitle()) {
+          <p>{{ subtitle() }}</p>
+        }
+      </header>
+
+      <ng-content />
+
+    </main>
+  </div>
+</section>

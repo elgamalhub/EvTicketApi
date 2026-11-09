@@ -1,0 +1,300 @@
+<section class="page checkin-page">
+  <div class="container">
+    <nav class="crumbs" aria-label="Breadcrumb">
+      <a routerLink="/organizer">Organizer studio</a>
+      <app-icon name="chevron-right" [size]="13" />
+      <span>Check-in desk</span>
+    </nav>
+
+    <header class="desk-head">
+      <div>
+        <span class="eyebrow"><span class="dot live"></span> Door operations</span>
+        <h1>Check-in desk</h1>
+        <p class="muted">Scan or type a ticket code, watch the room fill up, and export the attendee list.</p>
+      </div>
+      <div class="head-actions">
+        <button class="btn btn-outline btn-sm" type="button" [disabled]="!selectedEvent() || exporting()" (click)="exportCsv()">
+          @if (exporting()) {
+            <app-icon class="spin" name="loader" [size]="14" /> Exporting…
+          } @else {
+            <app-icon name="download" [size]="14" /> Export CSV
+          }
+        </button>
+        <a class="btn btn-ghost btn-sm" routerLink="/organizer">
+          <app-icon name="arrow-left" [size]="14" /> Studio
+        </a>
+      </div>
+    </header>
+
+    @if (loadingEvents()) {
+      <div class="desk-skeleton">
+        <div class="skeleton" style="height: 72px"></div>
+        <div class="skeleton" style="height: 220px"></div>
+        <div class="skeleton" style="height: 340px"></div>
+      </div>
+    } @else if (eventsError()) {
+      <div class="empty">
+        <app-icon name="alert-circle" [size]="30" />
+        <div>
+          <h3>We couldn't load your events</h3>
+          <p>{{ eventsError() }}</p>
+        </div>
+        <button class="btn btn-soft btn-sm" type="button" (click)="loadEvents()">Try again</button>
+      </div>
+    } @else if (events().length === 0) {
+      <div class="empty">
+        <app-icon name="calendar" [size]="30" />
+        <div>
+          <h3>No events to check in yet</h3>
+          <p>Publish an event first — guest tickets appear here as soon as they sell.</p>
+        </div>
+        <a class="btn btn-primary btn-sm" routerLink="/organizer/events/new">
+          <app-icon name="plus" [size]="14" /> Create an event
+        </a>
+      </div>
+    } @else {
+      <div class="event-bar card">
+        <label class="event-picker">
+          <span class="picker-label"><app-icon name="calendar" [size]="14" /> Event</span>
+          <select class="select" [value]="selectedId()" (change)="selectEvent($any($event.target).value)">
+            @for (event of events(); track event.id) {
+              <option [value]="event.id">{{ event.title }} — {{ dayAndTime(event.startsAt) }}</option>
+            }
+          </select>
+        </label>
+
+        @if (selectedEvent(); as event) {
+          <div class="event-facts">
+            <span><app-icon name="map-pin" [size]="13" /> {{ event.venueName }}, {{ event.city }}</span>
+            <span><app-icon name="clock" [size]="13" /> {{ timeOfDay(event.startsAt) }}</span>
+            <span class="badge" [class.badge-muted]="event.status.toLowerCase() === 'draft'" [class.badge-success]="event.status.toLowerCase() !== 'draft'">
+              {{ event.status }}
+            </span>
+          </div>
+        }
+      </div>
+
+      <div class="kpi-grid desk-kpis">
+        <article class="kpi">
+          <span class="kpi-label"><app-icon name="ticket" [size]="14" /> Tickets sold</span>
+          <div class="kpi-value">{{ number(total()) }}</div>
+          <div class="kpi-foot">All confirmed tickets for this event</div>
+        </article>
+        <article class="kpi">
+          <span class="kpi-label"><app-icon name="check-circle" [size]="14" /> Checked in</span>
+          <div class="kpi-value">{{ number(checkedInTotal()) }}</div>
+          <div class="kpi-foot">{{ number(remaining()) }} still to arrive</div>
+        </article>
+        <article class="kpi">
+          <span class="kpi-label"><app-icon name="users" [size]="14" /> On this page</span>
+          <div class="kpi-value">{{ number(checkedInOnPage()) }}<span class="kpi-sub"> / {{ number(attendees().length) }}</span></div>
+          <div class="kpi-foot">Checked in on the current page</div>
+        </article>
+        <article class="kpi">
+          <span class="kpi-label"><app-icon name="activity" [size]="14" /> Attendance</span>
+          <div class="kpi-value">{{ progress() }}%</div>
+          <div class="progress" style="margin-top: 10px"><span [style.width.%]="progress()"></span></div>
+          <div class="kpi-foot">Checked in vs. sold</div>
+        </article>
+      </div>
+
+      <div class="desk-grid">
+        <section class="card scan-card">
+          <div class="scan-head">
+            <span class="scan-icon"><app-icon name="scan" [size]="22" /></span>
+            <div>
+              <span class="eyebrow">Fast entry</span>
+              <h2>Scan a ticket</h2>
+              <p class="muted">Type or scan the code — press Enter to check the guest in.</p>
+            </div>
+          </div>
+
+          <form class="scan-form" (ngSubmit)="submit()" novalidate>
+            <div class="scan-input">
+              <app-icon name="qr" [size]="20" />
+              <input
+                #codeInput
+                class="code-input"
+                name="code"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder="EVT-XXXXXX"
+                aria-label="Ticket code"
+                [value]="code()"
+                (input)="code.set($any($event.target).value)"
+              />
+              <button class="btn btn-primary" type="submit" [disabled]="!code().trim() || checkingIn()">
+                @if (checkingIn()) {
+                  <app-icon class="spin" name="loader" [size]="16" /> Checking…
+                } @else {
+                  <app-icon name="check" [size]="16" /> Check in
+                }
+              </button>
+            </div>
+            <p class="field-hint">
+              Codes are case-insensitive. Each ticket can only be checked in once — a second scan shows as already
+              used.
+            </p>
+          </form>
+
+          @if (result(); as outcome) {
+            <div class="scan-result" [class.ok]="outcome.success" [class.bad]="!outcome.success" role="status">
+              <span class="result-mark">
+                <app-icon [name]="outcome.success ? 'check-circle' : 'alert-triangle'" [size]="24" />
+              </span>
+              <div class="result-copy">
+                <strong>{{ outcome.success ? 'Welcome in' : 'Check-in rejected' }}</strong>
+                <p>{{ outcome.message }}</p>
+                @if (outcome.success) {
+                  <div class="result-meta">
+                    @if (outcome.attendeeName) {
+                      <span><app-icon name="user" [size]="12" /> {{ outcome.attendeeName }}</span>
+                    }
+                    @if (outcome.seat) {
+                      <span><app-icon name="armchair" [size]="12" /> {{ outcome.seat }}</span>
+                    }
+                    @if (outcome.eventTitle) {
+                      <span><app-icon name="ticket" [size]="12" /> {{ outcome.eventTitle }}</span>
+                    }
+                    @if (outcome.ticketCode) {
+                      <code>{{ outcome.ticketCode }}</code>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </section>
+
+        <section class="card side-card">
+          <h3>Door checklist</h3>
+          <ul class="checklist">
+            <li><app-icon name="check" [size]="13" /> Keep the scanner focused — the cursor returns automatically.</li>
+            <li><app-icon name="check" [size]="13" /> Rejected scans tell you why: wrong event, unpaid, or already used.</li>
+            <li><app-icon name="check" [size]="13" /> Export the CSV at the end of the night for reconciliation.</li>
+          </ul>
+          <div class="side-foot">
+            <strong>{{ number(totalPages()) }}</strong>
+            <span>{{ totalPages() === 1 ? 'page of attendees' : 'pages of attendees' }}</span>
+          </div>
+        </section>
+      </div>
+
+      <section class="attendees-section">
+        <div class="section-head attendees-head">
+          <div>
+            <h2>Attendee list</h2>
+            <p>Search by name, email or ticket code. Check-ins update instantly.</p>
+          </div>
+          <div class="attendee-tools">
+            <div class="search-wrap">
+              <app-icon name="search" [size]="15" />
+              <input
+                class="input"
+                type="search"
+                placeholder="Search guests…"
+                aria-label="Search attendees"
+                [value]="query()"
+                (input)="onSearch($any($event.target).value)"
+              />
+              @if (query()) {
+                <button class="clear-search" type="button" aria-label="Clear search" (click)="clearSearch()">
+                  <app-icon name="x" [size]="13" />
+                </button>
+              }
+            </div>
+          </div>
+        </div>
+
+        @if (loadingAttendees()) {
+          <div class="attendee-skeleton">
+            @for (item of [1, 2, 3, 4, 5]; track item) {
+              <div class="skeleton" style="height: 54px"></div>
+            }
+          </div>
+        } @else if (attendeesError()) {
+          <div class="empty">
+            <app-icon name="alert-circle" [size]="28" />
+            <div>
+              <h3>We couldn't load the attendee list</h3>
+              <p>{{ attendeesError() }}</p>
+            </div>
+            <button class="btn btn-soft btn-sm" type="button" (click)="loadAttendees()">Try again</button>
+          </div>
+        } @else if (attendees().length === 0) {
+          <div class="empty">
+            <app-icon [name]="query() ? 'search' : 'users'" [size]="28" />
+            <div>
+              <h3>{{ query() ? 'No guests match that search' : 'No tickets sold yet' }}</h3>
+              <p>
+                {{ query()
+                  ? 'Try a different name, email or ticket code.'
+                  : 'Attendees will show up here as soon as tickets are purchased.' }}
+              </p>
+            </div>
+            @if (query()) {
+              <button class="btn btn-soft btn-sm" type="button" (click)="clearSearch()">Clear search</button>
+            }
+          </div>
+        } @else {
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Guest</th>
+                  <th>Seat</th>
+                  <th>Ticket code</th>
+                  <th>Booking</th>
+                  <th>Status</th>
+                  <th>Checked in</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (attendee of attendees(); track trackAttendee($index, attendee)) {
+                  <tr [class.checked-row]="attendee.isCheckedIn">
+                    <td>
+                      <div class="guest-cell">
+                        <span class="guest-mark" [class.done]="attendee.isCheckedIn">
+                          <app-icon [name]="attendee.isCheckedIn ? 'check' : 'user'" [size]="13" />
+                        </span>
+                        <div>
+                          <strong>{{ attendee.attendeeName }}</strong>
+                          <span class="muted">{{ attendee.email }}</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="nowrap">{{ seatLabel(attendee.section, attendee.row, attendee.seat) }}</td>
+                    <td><code class="code-chip">{{ attendee.ticketCode }}</code></td>
+                    <td class="nowrap muted">{{ attendee.bookingReference }}</td>
+                    <td>
+                      <span class="badge" [class.badge-success]="attendee.isCheckedIn" [class.badge-warning]="!attendee.isCheckedIn">
+                        {{ attendee.isCheckedIn ? 'Checked in' : 'Expected' }}
+                      </span>
+                    </td>
+                    <td class="nowrap muted">
+                      {{ attendee.checkedInAt ? dayAndTime(attendee.checkedInAt) : '—' }}
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <div class="pager">
+            <span class="pager-copy">
+              Page {{ page() }} of {{ totalPages() }} · {{ number(total()) }} guests
+            </span>
+            <div class="pager-actions">
+              <button class="btn btn-outline btn-sm" type="button" [disabled]="page() <= 1" (click)="prevPage()">
+                <app-icon name="chevron-left" [size]="14" /> Previous
+              </button>
+              <button class="btn btn-outline btn-sm" type="button" [disabled]="page() >= totalPages()" (click)="nextPage()">
+                Next <app-icon name="chevron-right" [size]="14" />
+              </button>
+            </div>
+          </div>
+        }
+      </section>
+    }
+  </div>
+</section>

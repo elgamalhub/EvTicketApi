@@ -1,0 +1,102 @@
+<app-auth-shell
+  eyebrow="Welcome back"
+  title="Sign in to EvTicket"
+  subtitle="Pick up your tickets, manage events, or check in guests."
+  sideTitle="The seat you pick is the seat you get."
+  sideLede="EvTicket holds your exact seat while you pay and broadcasts every change live, so double bookings are impossible by design."
+>
+  @if (justReset()) {
+    <div class="form-success" style="margin-bottom: 18px">
+      <span class="success-mark"><app-icon name="check" [size]="24" /></span>
+      <div>
+        <h3>Password updated</h3>
+        <p>Your new password is active. Sign in to continue where you left off.</p>
+      </div>
+    </div>
+  }
+
+  <form class="auth-form" (ngSubmit)="submit()" novalidate>
+    @if (error()) {
+      <div class="form-alert" role="alert">
+        <app-icon name="alert-circle" [size]="15" />
+        <span>{{ error() }}</span>
+      </div>
+    }
+
+    <label class="field">
+      <span>Email address</span>
+      <div class="input-wrap">
+        <app-icon name="mail" [size]="16" />
+        <input
+          class="input"
+          type="email"
+          name="email"
+          autocomplete="email"
+          placeholder="you@example.com"
+          [value]="email()"
+          (input)="email.set($any($event.target).value)"
+        />
+      </div>
+    </label>
+
+    <label class="field">
+      <span>Password</span>
+      <div class="input-wrap">
+        <app-icon name="lock" [size]="16" />
+        <input
+          class="input has-action"
+          [type]="showPassword() ? 'text' : 'password'"
+          name="password"
+          autocomplete="current-password"
+          placeholder="Your password"
+          [value]="password()"
+          (input)="password.set($any($event.target).value)"
+        />
+        <button
+          class="input-action"
+          type="button"
+          [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
+          (click)="showPassword.set(!showPassword())"
+        >
+          <app-icon [name]="showPassword() ? 'eye-off' : 'eye'" [size]="16" />
+        </button>
+      </div>
+    </label>
+
+    <div class="auth-row">
+      <span class="field-hint">Password demo accounts use <strong>Demo&#64;12345</strong></span>
+      <a class="inline-link" routerLink="/forgot-password" style="font-size: 12px">Forgot password?</a>
+    </div>
+
+    <button class="btn btn-primary btn-lg btn-block auth-submit" type="submit" [disabled]="!canSubmit() || submitting()">
+      @if (submitting()) {
+        <app-icon class="spin" name="loader" [size]="16" /> Signing in…
+      } @else {
+        <app-icon name="log-in" [size]="16" /> Sign in
+      }
+    </button>
+
+    <div class="divider-text">or try a demo account</div>
+
+    <div class="demo-block">
+      <span class="demo-title"><app-icon name="sparkles" [size]="13" /> One-click demo access</span>
+      <div class="demo-accounts">
+        @for (account of demoAccounts; track account.email) {
+          <button class="demo-account" type="button" [disabled]="submitting()" (click)="useDemo(account)">
+            <span class="demo-avatar">{{ initials(account.label) }}</span>
+            <div>
+              <strong>{{ account.label }} · {{ account.role }}</strong>
+              <span>{{ account.email }}</span>
+            </div>
+            <app-icon name="arrow-right" [size]="14" />
+          </button>
+        }
+      </div>
+    </div>
+  </form>
+
+  <p class="auth-foot">
+    New to EvTicket? <a routerLink="/register">Create an account</a>
+  </p>
+  <a class="back-link" routerLink="/"><app-icon name="arrow-left" [size]="13" /> Back to events</a>
+</app-auth-shell>

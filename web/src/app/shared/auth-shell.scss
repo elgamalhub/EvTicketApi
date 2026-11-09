@@ -1,0 +1,232 @@
+.auth-page {
+  position: relative;
+  min-height: calc(100vh - var(--header-height));
+  padding: 46px 0 80px;
+  overflow: hidden;
+}
+
+.auth-backdrop {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 55% 55% at 12% 8%, rgba(124, 108, 255, 0.2), transparent 62%),
+    radial-gradient(ellipse 45% 45% at 88% 92%, rgba(34, 211, 238, 0.1), transparent 62%);
+  pointer-events: none;
+}
+
+.auth-grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 448px;
+  gap: 46px;
+  align-items: center;
+  min-height: calc(100vh - var(--header-height) - 130px);
+}
+
+/* ---------- Side panel ---------- */
+
+.auth-side {
+  display: flex;
+  flex-direction: column;
+  gap: 34px;
+  min-width: 0;
+  padding-right: 12px;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+  align-self: flex-start;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 19px;
+  letter-spacing: -0.03em;
+}
+
+.brand-mark {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--gradient);
+  color: #fff;
+  box-shadow: 0 10px 24px rgba(124, 108, 255, 0.4);
+}
+
+.side-copy h2 {
+  margin: 16px 0 14px;
+  max-width: 520px;
+  font-size: clamp(1.9rem, 3.4vw, 2.8rem);
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+}
+
+.side-copy > p {
+  margin: 0;
+  max-width: 500px;
+  color: var(--muted);
+  font-size: 14.5px;
+  line-height: 1.7;
+}
+
+.side-points {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 24px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.side-points li {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  color: var(--text-soft);
+  font-size: 13.5px;
+}
+
+.side-points li span {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid rgba(52, 211, 153, 0.32);
+  background: rgba(52, 211, 153, 0.12);
+  color: #6ee7b7;
+  flex: none;
+}
+
+.side-map {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  padding: 18px 24px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background:
+    radial-gradient(ellipse 70% 80% at 50% 0%, rgba(124, 108, 255, 0.14), transparent 60%),
+    rgba(5, 9, 20, 0.42);
+}
+
+.map-stage-label {
+  width: 62%;
+  margin-bottom: 6px;
+  padding: 4px 0;
+  border-radius: 5px;
+  background: linear-gradient(90deg, rgba(124, 108, 255, 0.5), rgba(34, 211, 238, 0.45));
+  color: #e8e6ff;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  text-align: center;
+}
+
+.map-row {
+  display: flex;
+  gap: 5px;
+}
+
+.map-seat {
+  width: 9px;
+  height: 9px;
+  border-radius: 2.5px;
+  background: rgba(124, 108, 255, 0.55);
+  box-shadow: 0 0 6px rgba(124, 108, 255, 0.22);
+}
+
+.map-seat.taken {
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: none;
+}
+
+.map-seat.held {
+  background: var(--warning);
+  box-shadow: 0 0 6px rgba(251, 191, 36, 0.3);
+}
+
+.side-foot {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: #6f7b99;
+  font-size: 11.5px;
+}
+
+/* ---------- Card ---------- */
+
+.auth-card {
+  width: 100%;
+  padding: 34px;
+  border-color: var(--border-strong);
+  background: rgba(12, 18, 36, 0.8);
+  box-shadow: 0 40px 100px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(18px);
+}
+
+.auth-head {
+  margin-bottom: 24px;
+}
+
+.auth-head h1 {
+  margin: 10px 0 8px;
+  font-size: clamp(1.6rem, 2.4vw, 2rem);
+}
+
+.auth-head p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13.5px;
+  line-height: 1.55;
+}
+
+/* Form bits used through ng-content (global-ish selectors rely on ::ng-deep not needed
+   because content is projected but styling still needs to live in the consuming page).
+   We keep only layout defaults here. */
+
+.auth-card ::ng-deep .auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+@media (max-width: 1020px) {
+  .auth-grid {
+    grid-template-columns: 1fr;
+    max-width: 520px;
+    gap: 28px;
+  }
+
+  .auth-side {
+    gap: 22px;
+    padding-right: 0;
+  }
+
+  .side-map,
+  .side-foot {
+    display: none;
+  }
+
+  .side-copy h2 {
+    font-size: 1.9rem;
+  }
+}
+
+@media (max-width: 560px) {
+  .auth-page {
+    padding-top: 24px;
+  }
+
+  .auth-card {
+    padding: 24px 20px;
+  }
+
+  .side-points {
+    display: none;
+  }
+}

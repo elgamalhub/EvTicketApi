@@ -1,0 +1,252 @@
+<section class="page detail-page">
+  <div class="container">
+    @if (loading()) {
+      <div class="detail-skeleton">
+        <div class="skeleton" style="height: 420px"></div>
+        <div class="skeleton" style="height: 200px"></div>
+      </div>
+    } @else if (error()) {
+      <div class="empty mt-3">
+        <app-icon name="alert-circle" [size]="32" />
+        <div>
+          <h3>We couldn't load this event</h3>
+          <p>{{ error() }}</p>
+        </div>
+        <a class="btn btn-soft btn-sm" routerLink="/events">Back to all events</a>
+      </div>
+    } @else if (event(); as evt) {
+      <nav class="crumbs" aria-label="Breadcrumb">
+        <a routerLink="/events">Events</a>
+        <app-icon name="chevron-right" [size]="13" />
+        <a [routerLink]="['/events']" [queryParams]="{ category: evt.categorySlug }">{{ evt.category }}</a>
+        <app-icon name="chevron-right" [size]="13" />
+        <span>{{ evt.title }}</span>
+      </nav>
+
+      <header class="detail-hero card">
+        <div class="hero-media">
+          @if (evt.bannerUrl) {
+            <img [src]="evt.bannerUrl" [alt]="evt.title" />
+          } @else {
+            <div class="hero-fallback"><app-icon name="ticket" [size]="50" /></div>
+          }
+          <div class="hero-overlay">
+            <div class="hero-badges">
+              <span class="badge badge-brand">{{ evt.category }}</span>
+              @if (evt.isFeatured) {
+                <span class="badge badge-cyan"><app-icon name="sparkles" [size]="11" /> Featured</span>
+              }
+              <span class="badge badge-muted">{{ evt.ageRating }}</span>
+            </div>
+            <h1>{{ evt.title }}</h1>
+            <p class="hero-summary">{{ evt.summary }}</p>
+            <div class="hero-facts">
+              <span><app-icon name="calendar" [size]="15" /> {{ dayAndTime(evt.startsAt) }}</span>
+              <span><app-icon name="map-pin" [size]="15" /> {{ evt.venueName }}, {{ evt.city }}</span>
+              <span><app-icon name="clock" [size]="15" /> Doors {{ timeOfDay(evt.doorsOpenAt) }}</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div class="detail-grid">
+        <div class="detail-main">
+          <section class="card card-pad about">
+            <div class="row-between">
+              <h2>About this event</h2>
+              <button class="btn btn-outline btn-sm" type="button" (click)="share()">
+                <app-icon name="external-link" [size]="14" /> Share
+              </button>
+            </div>
+            @for (paragraph of paragraphs(); track $index) {
+              <p>{{ paragraph }}</p>
+            }
+
+            <div class="highlight-grid">
+              <div class="highlight">
+                <span class="highlight-icon"><app-icon name="calendar" [size]="17" /></span>
+                <div><strong>Doors open</strong><span>{{ timeOfDay(evt.doorsOpenAt) }} · {{ dateLong(evt.startsAt) }}</span></div>
+              </div>
+              <div class="highlight">
+                <span class="highlight-icon"><app-icon name="clock" [size]="17" /></span>
+                <div><strong>Start time</strong><span>{{ timeOfDay(evt.startsAt) }} · runs until {{ timeOfDay(evt.endsAt) }}</span></div>
+              </div>
+              <div class="highlight">
+                <span class="highlight-icon"><app-icon name="shield" [size]="17" /></span>
+                <div><strong>Age guidance</strong><span>{{ evt.ageRating }}</span></div>
+              </div>
+              <div class="highlight">
+                <span class="highlight-icon"><app-icon name="armchair" [size]="17" /></span>
+                <div><strong>{{ evt.isSeated ? 'Reserved seating' : 'General admission' }}</strong><span>{{ evt.isSeated ? 'Pick your exact seat' : 'Standing / unassigned' }}</span></div>
+              </div>
+            </div>
+
+            @if (evt.tags.length) {
+              <div class="tag-row">
+                @for (tag of evt.tags; track tag) {
+                  <span class="chip"><app-icon name="tag" [size]="12" /> {{ tag }}</span>
+                }
+              </div>
+            }
+          </section>
+
+          @if (evt.isSeated && seatMap(); as map) {
+            <section class="card card-pad map-preview">
+              <div class="row-between">
+                <div>
+                  <h2>{{ map.venueName }} · floor plan</h2>
+                  <p class="muted tiny">{{ map.stats.available }} of {{ map.stats.total }} seats available · {{ map.city }}</p>
+                </div>
+                <a class="link-arrow" [routerLink]="['/events', evt.slug, 'seats']">Open interactive map <app-icon name="arrow-right" [size]="14" /></a>
+              </div>
+
+              <div class="preview-canvas">
+                <svg [attr.viewBox]="'0 0 ' + map.mapWidth + ' ' + map.mapHeight" role="img" [attr.aria-label]="'Seat map preview for ' + map.title">
+                  <defs>
+                    <radialGradient [attr.id]="'stage-glow-' + map.eventId" cx="50%" cy="50%" r="60%">
+                      <stop offset="0%" stop-color="#7c6cff" stop-opacity="0.32" />
+                      <stop offset="100%" stop-color="#7c6cff" stop-opacity="0" />
+                    </radialGradient>
+                  </defs>
+                  <rect x="0" y="0" [attr.width]="map.mapWidth" [attr.height]="map.mapHeight" fill="rgba(6,9,20,.45)" rx="18" />
+                  <rect
+                    [attr.x]="map.stage.x"
+                    [attr.y]="map.stage.y"
+                    [attr.width]="map.stage.width"
+                    [attr.height]="map.stage.height"
+                    [attr.rx]="14"
+                    [attr.fill]="'url(#stage-glow-' + map.eventId + ')'"
+                  />
+                  <rect
+                    [attr.x]="map.stage.x"
+                    [attr.y]="map.stage.y"
+                    [attr.width]="map.stage.width"
+                    [attr.height]="map.stage.height"
+                    rx="10"
+                    fill="rgba(255,255,255,.06)"
+                    stroke="rgba(255,255,255,.2)"
+                  />
+                  <text
+                    [attr.x]="map.stage.x + map.stage.width / 2"
+                    [attr.y]="map.stage.y + map.stage.height / 2 + 5"
+                    text-anchor="middle"
+                    fill="#d9d3ff"
+                    font-size="16"
+                    font-weight="700"
+                    letter-spacing="5"
+                  >{{ map.stage.label }}</text>
+
+                  @for (seat of previewSeats(); track seat.id) {
+                    <circle
+                      [attr.cx]="seat.x"
+                      [attr.cy]="seat.y"
+                      r="3.2"
+                      [attr.fill]="seatFill(seat)"
+                      [attr.opacity]="seat.status === 'sold' ? 0.5 : 0.95"
+                    >
+                      <title>{{ seat.code }} · {{ seat.status }}</title>
+                    </circle>
+                  }
+                </svg>
+
+                <div class="preview-legend">
+                  <span><i class="legend-dot available"></i> Available</span>
+                  <span><i class="legend-dot held"></i> On hold</span>
+                  <span><i class="legend-dot sold"></i> Sold</span>
+                </div>
+              </div>
+            </section>
+          }
+
+          <section class="card card-pad organizer-card">
+            <span class="organizer-avatar">{{ evt.organizerName.slice(0, 1) }}</span>
+            <div>
+              <span class="muted tiny">Presented by</span>
+              <strong>{{ evt.organizerName }}</strong>
+            </div>
+            <span class="badge badge-muted"><app-icon name="shield" [size]="11" /> Verified organizer</span>
+          </section>
+
+          @if (related().length) {
+            <section class="related">
+              <div class="section-head">
+                <div>
+                  <span class="eyebrow">More like this</span>
+                  <h2>You might also like</h2>
+                </div>
+                <a class="link-arrow" routerLink="/events">See all <app-icon name="arrow-right" [size]="14" /></a>
+              </div>
+              <div class="grid grid-3">
+                @for (item of related(); track item.id) {
+                  <app-event-card [event]="item" />
+                }
+              </div>
+            </section>
+          }
+        </div>
+
+        <aside class="buy-rail">
+          <div class="card card-pad buy-card">
+            <span class="eyebrow">Tickets</span>
+            <div class="price-line">
+              <span class="muted tiny">From</span>
+              <strong>{{ money(evt.minPrice, evt.currency) }}</strong>
+            </div>
+
+            <div class="availability">
+              <div class="row-between tiny">
+                <span class="muted">{{ number(evt.availableTickets) }} of {{ number(evt.capacity) }} available</span>
+                <span class="muted">{{ sellThroughRounded() }}% sold</span>
+              </div>
+              <div class="progress"><span [style.width.%]="sellThrough()"></span></div>
+            </div>
+
+            <div class="buy-facts">
+              <span><app-icon name="armchair" [size]="15" /> {{ evt.isSeated ? 'Reserved seating' : 'General admission' }}</span>
+              <span><app-icon name="lock" [size]="15" /> Seats held for 10 minutes</span>
+              <span><app-icon name="qr" [size]="15" /> Instant QR tickets</span>
+            </div>
+
+            @if (evt.availableTickets > 0) {
+              <a class="btn btn-primary btn-lg btn-block" [routerLink]="['/events', evt.slug, 'seats']">
+                <app-icon name="armchair" [size]="17" /> {{ evt.isSeated ? 'Choose your seats' : 'Get tickets' }}
+              </a>
+            } @else {
+              <button class="btn btn-outline btn-lg btn-block" type="button" disabled>Sold out</button>
+            }
+
+            <p class="buy-note">
+              <app-icon name="shield" [size]="13" /> Secure checkout · free cancellation up to 24h before the event
+            </p>
+
+            <hr />
+
+            <div class="venue-block">
+              <span class="venue-thumb"><app-icon name="map-pin" [size]="18" /></span>
+              <div>
+                <strong>{{ evt.venueName }}</strong>
+                <span>{{ evt.venueAddress }}</span>
+                <span>{{ evt.city }}</span>
+              </div>
+            </div>
+            <div class="venue-block">
+              <span class="venue-thumb"><app-icon name="users" [size]="18" /></span>
+              <div>
+                <strong>{{ evt.layoutKind }} layout</strong>
+                <span>{{ number(evt.capacity) }} capacity · {{ evt.sections.length }} sections</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card card-pad guarantee">
+            <app-icon name="shield" [size]="19" />
+            <div>
+              <strong>Buyer guarantee</strong>
+              <p>Every ticket is issued directly by the organizer. If the event is cancelled, you are refunded automatically.</p>
+            </div>
+          </div>
+        </aside>
+      </div>
+    }
+  </div>
+</section>

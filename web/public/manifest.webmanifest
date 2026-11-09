@@ -1,0 +1,38 @@
+{
+  "name": "EvTicket — Live events, real seats",
+  "short_name": "EvTicket",
+  "description": "Discover events, pick your exact seat on a live venue map and get QR tickets instantly.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#060914",
+  "theme_color": "#060914",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["entertainment", "events", "tickets"],
+  "shortcuts": [
+    {
+      "name": "Discover events",
+      "short_name": "Discover",
+      "url": "/events"
+    },
+    {
+      "name": "My tickets",
+      "short_name": "Tickets",
+      "url": "/account"
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+<section class="page not-found-page">
+  <div class="container">
+    <div class="not-found">
+      <div class="orbit" aria-hidden="true">
+        <span class="orbit-ring"></span>
+        <span class="orbit-ring inner"></span>
+        <span class="orbit-ticket"><app-icon name="ticket" [size]="34" /></span>
+      </div>
+
+      <span class="error-code">404</span>
+      <h1>This page never made it past the door</h1>
+      <p class="muted">
+        The link may be broken, the event may have ended, or the page moved. The good news: there is
+        still plenty on tonight.
+      </p>
+
+      <div class="not-found-actions">
+        <a class="btn btn-primary" routerLink="/events">
+          <app-icon name="compass" [size]="16" /> Browse events
+        </a>
+        <a class="btn btn-soft" routerLink="/">
+          <app-icon name="arrow-left" [size]="16" /> Back home
+        </a>
+      </div>
+
+      <div class="quick-links">
+        @if (isAuthenticated()) {
+          <a routerLink="/account"><app-icon name="ticket" [size]="14" /> My tickets</a>
+          @if (isOrganizer()) {
+            <a routerLink="/organizer"><app-icon name="dashboard" [size]="14" /> Organizer studio</a>
+          }
+        } @else {
+          <a routerLink="/login"><app-icon name="log-in" [size]="14" /> Sign in</a>
+          <a routerLink="/register"><app-icon name="sparkles" [size]="14" /> Create an account</a>
+        }
+      </div>
+    </div>
+  </div>
+</section>

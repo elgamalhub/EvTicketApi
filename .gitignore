@@ -1,0 +1,30 @@
+# ---------- .NET ----------
+**/bin/
+**/obj/
+*.user
+*.suo
+.vs/
+*.nupkg
+
+# ---------- SQLite ----------
+*.db
+*.db-shm
+*.db-wal
+
+# ---------- Node / Angular ----------
+web/node_modules/
+web/dist/
+web/.angular/
+web/coverage/
+npm-debug.log*
+
+# ---------- Local secrets & logs ----------
+.env
+.env.local
+*.log
+logs/
+
+# ---------- OS / editors ----------
+.DS_Store
+Thumbs.db
+.idea/

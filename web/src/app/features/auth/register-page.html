@@ -1,0 +1,169 @@
+<app-auth-shell
+  eyebrow="Create your account"
+  title="Get closer to the show"
+  subtitle="One account for tickets, QR passes and organizer tools."
+  sideTitle="Every seat mapped. Every ticket unique."
+  sideLede="Join thousands of guests using live venue maps, instant QR tickets and fair, conflict-free seat selection."
+  [points]="[
+    'Seats held for 10 minutes while you pay',
+    'QR tickets issued the moment payment clears',
+    'Organizer studio for events and check-in'
+  ]"
+>
+  <form class="auth-form" (ngSubmit)="submit()" novalidate>
+    @if (error()) {
+      <div class="form-alert" role="alert">
+        <app-icon name="alert-circle" [size]="15" />
+        <span>{{ error() }}</span>
+      </div>
+    }
+
+    <div class="role-toggle" role="radiogroup" aria-label="Account type">
+      <button
+        class="role-option"
+        type="button"
+        role="radio"
+        [attr.aria-checked]="kind() === 'attendee'"
+        [class.active]="kind() === 'attendee'"
+        (click)="kind.set('attendee')"
+      >
+        <app-icon name="ticket" [size]="17" />
+        <div>
+          <strong>I'm here for events</strong>
+          <span>Buy tickets and manage bookings</span>
+        </div>
+      </button>
+      <button
+        class="role-option"
+        type="button"
+        role="radio"
+        [attr.aria-checked]="kind() === 'organizer'"
+        [class.active]="kind() === 'organizer'"
+        (click)="kind.set('organizer')"
+      >
+        <app-icon name="dashboard" [size]="17" />
+        <div>
+          <strong>I organize events</strong>
+          <span>Publish events and check in guests</span>
+        </div>
+      </button>
+    </div>
+
+    <label class="field">
+      <span>Full name</span>
+      <div class="input-wrap">
+        <app-icon name="user" [size]="16" />
+        <input
+          class="input"
+          name="fullName"
+          autocomplete="name"
+          placeholder="Alex Morgan"
+          [value]="fullName()"
+          (input)="fullName.set($any($event.target).value)"
+        />
+      </div>
+    </label>
+
+    <div class="form-row">
+      <label class="field">
+        <span>Email</span>
+        <div class="input-wrap">
+          <app-icon name="mail" [size]="16" />
+          <input
+            class="input"
+            type="email"
+            name="email"
+            autocomplete="email"
+            placeholder="you@example.com"
+            [value]="email()"
+            (input)="email.set($any($event.target).value)"
+          />
+        </div>
+      </label>
+      <label class="field">
+        <span>Phone <em class="muted" style="font-style: normal; font-weight: 400">(optional)</em></span>
+        <div class="input-wrap">
+          <app-icon name="phone" [size]="16" />
+          <input
+            class="input"
+            name="phone"
+            autocomplete="tel"
+            placeholder="+1 555 010 2030"
+            [value]="phone()"
+            (input)="phone.set($any($event.target).value)"
+          />
+        </div>
+      </label>
+    </div>
+
+    <label class="field">
+      <span>Password</span>
+      <div class="input-wrap">
+        <app-icon name="lock" [size]="16" />
+        <input
+          class="input has-action"
+          [type]="showPassword() ? 'text' : 'password'"
+          name="password"
+          autocomplete="new-password"
+          placeholder="At least 8 characters"
+          [value]="password()"
+          (input)="password.set($any($event.target).value)"
+        />
+        <button
+          class="input-action"
+          type="button"
+          [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
+          (click)="showPassword.set(!showPassword())"
+        >
+          <app-icon [name]="showPassword() ? 'eye-off' : 'eye'" [size]="16" />
+        </button>
+      </div>
+    </label>
+
+    @if (password().length > 0) {
+      <div class="strength" [attr.data-level]="strength()">
+        <div class="strength-bars"><span></span><span></span><span></span><span></span></div>
+        <span class="strength-label">Password strength: {{ strengthLabel() }}</span>
+      </div>
+    }
+
+    <label class="field">
+      <span>Confirm password</span>
+      <div class="input-wrap">
+        <app-icon name="shield" [size]="16" />
+        <input
+          class="input"
+          [type]="showPassword() ? 'text' : 'password'"
+          name="confirm"
+          autocomplete="new-password"
+          placeholder="Repeat your password"
+          [value]="confirm()"
+          (input)="confirm.set($any($event.target).value)"
+        />
+      </div>
+      @if (!passwordsMatch()) {
+        <span class="field-error">Passwords do not match yet.</span>
+      } @else if (confirm().length > 0) {
+        <span class="field-hint ok">Passwords match.</span>
+      }
+    </label>
+
+    <label class="checkbox">
+      <input type="checkbox" [checked]="accepted()" (change)="accepted.set($any($event.target).checked)" />
+      <span>I agree to the EvTicket terms and privacy policy.</span>
+    </label>
+
+    <button class="btn btn-primary btn-lg btn-block auth-submit" type="submit" [disabled]="!canSubmit() || submitting()">
+      @if (submitting()) {
+        <app-icon class="spin" name="loader" [size]="16" /> Creating account…
+      } @else {
+        <app-icon name="sparkles" [size]="16" /> Create account
+      }
+    </button>
+  </form>
+
+  <p class="auth-foot">
+    Already have an account? <a routerLink="/login">Sign in</a>
+  </p>
+  <a class="back-link" routerLink="/"><app-icon name="arrow-left" [size]="13" /> Back to events</a>
+</app-auth-shell>
